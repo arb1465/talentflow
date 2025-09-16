@@ -1,243 +1,190 @@
+// src/utils/seedData.js
+
+import { db } from '../db';
 import { faker } from '@faker-js/faker';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../db/index.js';
 
-const JOB_STATUSES = ['active', 'archived'];
-const CANDIDATE_STAGES = ['applied', 'screen', 'tech', 'offer', 'hired', 'rejected'];
-const TECH_TAGS = ['JavaScript', 'React', 'Node.js', 'Python', 'Java', 'PHP', 'Angular', 'Vue.js', 'TypeScript', 'Go'];
+// --- Helper Functions to Generate Realistic Data ---
 
-// Generate a URL-friendly slug from a title
-const generateSlug = (title) => {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9 -]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim('-');
-};
-
-// Create seed data
-export const createSeedData = () => {
-  // Generate 25 jobs
-  const jobs = Array.from({ length: 25 }, (_, index) => {
-    const title = faker.person.jobTitle();
-    const createdAt = faker.date.past({ years: 1 }).toISOString();
-    
-    return {
-      id: uuidv4(),
-      title,
-      slug: `${generateSlug(title)}-${index}`,
-      description: faker.lorem.paragraphs(2),
-      status: faker.helpers.arrayElement(JOB_STATUSES),
-      tags: faker.helpers.arrayElements(TECH_TAGS, { min: 2, max: 5 }),
-      order: index,
-      createdAt,
-      updatedAt: createdAt
-    };
-  });
-
-  // Generate 1000 candidates
-  const candidates = Array.from({ length: 1000 }, () => {
-    const createdAt = faker.date.past({ years: 1 }).toISOString();
-    const jobId = faker.helpers.arrayElement(jobs).id;
-    
-    return {
-      id: uuidv4(),
-      name: faker.person.fullName(),
-      email: faker.internet.email(),
-      phone: faker.phone.number(),
-      stage: faker.helpers.arrayElement(CANDIDATE_STAGES),
-      jobId,
-      createdAt,
-      updatedAt: createdAt,
-      notes: []
-    };
-  });
-
-  // Generate timeline entries for candidates
-  const candidateTimeline = [];
-  candidates.forEach(candidate => {
-    // Each candidate has 1-3 timeline entries
-    const timelineCount = faker.number.int({ min: 1, max: 3 });
-    
-    for (let i = 0; i < timelineCount; i++) {
-      candidateTimeline.push({
-        id: uuidv4(),
-        candidateId: candidate.id,
-        action: i === 0 ? 'applied' : 'stage_change',
-        fromStage: i === 0 ? null : faker.helpers.arrayElement(CANDIDATE_STAGES),
-        toStage: i === 0 ? 'applied' : faker.helpers.arrayElement(CANDIDATE_STAGES),
-        timestamp: faker.date.past({ years: 1 }).toISOString(),
-        userId: uuidv4(),
-        userName: faker.person.fullName()
-      });
-    }
-  });
-
-  // Generate assessment questions
-  const createQuestions = () => {
-    const questions = [
-      {
-        id: uuidv4(),
-        type: 'single-choice',
-        title: 'How many years of experience do you have with React?',
-        description: 'Please select your experience level',
-        required: true,
-        options: ['0-1 years', '1-3 years', '3-5 years', '5+ years'],
-        validation: {},
-        conditionalLogic: {}
-      },
-      {
-        id: uuidv4(),
-        type: 'multi-choice',
-        title: 'Which of the following technologies have you worked with?',
-        description: 'Select all that apply',
-        required: true,
-        options: ['Redux', 'Context API', 'MobX', 'Zustand', 'Recoil'],
-        validation: {},
-        conditionalLogic: {}
-      },
-      {
-        id: uuidv4(),
-        type: 'short-text',
-        title: 'What is your current role?',
-        description: 'Please provide your current job title',
-        required: true,
-        options: [],
-        validation: { maxLength: 100 },
-        conditionalLogic: {}
-      },
-      {
-        id: uuidv4(),
-        type: 'long-text',
-        title: 'Describe a challenging project you worked on',
-        description: 'Please provide details about the project, your role, and the challenges faced',
-        required: true,
-        options: [],
-        validation: { maxLength: 1000 },
-        conditionalLogic: {}
-      },
-      {
-        id: uuidv4(),
-        type: 'numeric',
-        title: 'Expected salary range (in thousands)',
-        description: 'Please enter your expected annual salary',
-        required: false,
-        options: [],
-        validation: { min: 0, max: 500 },
-        conditionalLogic: {}
-      },
-      {
-        id: uuidv4(),
-        type: 'file-upload',
-        title: 'Upload your resume',
-        description: 'Please upload your latest resume (PDF format preferred)',
-        required: true,
-        options: [],
-        validation: { allowedTypes: ['pdf', 'doc', 'docx'] },
-        conditionalLogic: {}
-      }
-    ];
-
-    // Add more questions to reach 10+
-    for (let i = questions.length; i < 12; i++) {
-      questions.push({
-        id: uuidv4(),
-        type: faker.helpers.arrayElement(['single-choice', 'short-text', 'long-text']),
-        title: faker.lorem.sentence({ min: 5, max: 10 }),
-        description: faker.lorem.sentence(),
-        required: faker.datatype.boolean(),
-        options: faker.helpers.arrayElement(['single-choice', 'multi-choice']) ? 
-          Array.from({ length: 4 }, () => faker.lorem.words(2)) : [],
-        validation: {},
-        conditionalLogic: {}
-      });
-    }
-
-    return questions;
-  };
-
-  // Generate 3 assessments with 10+ questions each
-  const assessments = jobs.slice(0, 3).map(job => {
-    const createdAt = faker.date.past({ years: 1 }).toISOString();
-    
-    return {
-      id: uuidv4(),
-      jobId: job.id,
-      title: `${job.title} Assessment`,
-      description: `Technical assessment for ${job.title} position`,
-      sections: [
-        {
-          id: uuidv4(),
-          title: 'Experience & Background',
-          description: 'Questions about your professional experience',
-          questions: createQuestions().slice(0, 6)
-        },
-        {
-          id: uuidv4(),
-          title: 'Technical Skills',
-          description: 'Technical questions related to the role',
-          questions: createQuestions().slice(6, 12)
-        }
-      ],
-      createdAt,
-      updatedAt: createdAt
-    };
-  });
-
-  // Generate some users for @mentions
-  const users = Array.from({ length: 10 }, () => ({
-    id: uuidv4(),
-    name: faker.person.fullName(),
-    email: faker.internet.email()
-  }));
-
+/**
+ * Creates a single fake HR Manager.
+ * @returns {import('../types').HRManager}
+ */
+function createHRManager(name, email, password) {
   return {
-    jobs,
-    candidates,
-    candidateTimeline,
-    assessments,
-    users,
-    assessmentResponses: [] // Start with empty responses
+    id: uuidv4(),
+    name,
+    email,
+    password, // In a real app, this would be hashed
+    role: 'manager',
+    avatarUrl: faker.image.avatar(),
+    assignedJobs: [],
+    personalDetails: {
+      phone: faker.phone.number(),
+      gender: faker.person.sex(),
+      city: faker.location.city(),
+      dateOfBirth: faker.date.birthdate().toISOString(),
+    },
+    workExperience: [],
+    createdAt: faker.date.past().toISOString(),
   };
-};
+}
 
-// Seed the database
-export const seedDatabase = async () => {
-  try {
-    // Check if data already exists
-    const existingJobs = await db.jobs.count();
-    if (existingJobs > 0) {
-      console.log('Database already seeded');
-      return;
+
+/**
+ * Creates a single fake Job.
+ * @returns {import('../types').Job}
+ */
+function createJob(order) {
+  const title = faker.person.jobTitle();
+  return {
+    id: uuidv4(),
+    title,
+    slug: faker.helpers.slugify(title).toLowerCase(),
+    description: faker.lorem.paragraphs(3),
+    company: {
+      name: faker.company.name(),
+      description: faker.company.catchPhrase(),
+      avatarUrl: faker.image.avatar(),
+    },
+    industry: faker.person.jobArea(),
+    jobType: faker.helpers.arrayElement(['Full-Time', 'Internship', 'Contract']),
+    salary: {
+      min: faker.number.int({ min: 60000, max: 100000 }),
+      max: faker.number.int({ min: 110000, max: 180000 }),
+      currency: 'USD',
+      period: 'Annual',
+    },
+    status: faker.helpers.arrayElement(['active', 'archived']),
+    location: faker.location.city(),
+    workplaceType: faker.helpers.arrayElement(['On-site', 'Remote', 'Hybrid']),
+    tags: faker.helpers.arrayElements(['React', 'Node.js', 'Remote', 'TypeScript', 'Agile'], { min: 1, max: 4 }),
+    order,
+    createdAt: faker.date.past().toISOString(),
+    updatedAt: faker.date.recent().toISOString(),
+  };
+}
+// src/utils/seedData.js
+
+/**
+ * Creates a single fake Candidate.
+ * @param {string} jobId
+ * @param {string} status
+ * @returns {import('../types').Candidate}
+ */
+function createCandidate(jobId, status) {
+  const firstName = faker.person.firstName();
+  const lastName = faker.person.lastName();
+  
+  // 1. First, create the detailed application object(s).
+  //    For simplicity, we'll start each candidate with one application.
+  const appliedJobs = [
+    { 
+      jobId, 
+      status, 
+      appliedOn: faker.date.recent().toISOString() 
     }
+  ];
 
-    console.log('Seeding database...');
-    const seedData = createSeedData();
+  // 2. THIS IS THE FIX: Create the simple array for indexing.
+  //    We use .map() to extract just the 'jobId' from each object in the appliedJobs array.
+  const appliedJobIds = appliedJobs.map(app => app.jobId);
 
-    // Clear existing data and add seed data
-    await db.transaction('rw', db.jobs, db.candidates, db.candidateTimeline, db.assessments, db.users, async () => {
-      await db.jobs.clear();
-      await db.candidates.clear();
-      await db.candidateTimeline.clear();
-      await db.assessments.clear();
-      await db.users.clear();
-      await db.assessmentResponses.clear();
 
-      await db.jobs.bulkAdd(seedData.jobs);
-      await db.candidates.bulkAdd(seedData.candidates);
-      await db.candidateTimeline.bulkAdd(seedData.candidateTimeline);
-      await db.assessments.bulkAdd(seedData.assessments);
-      await db.users.bulkAdd(seedData.users);
+  // 3. Return the complete candidate object, including the new field.
+  return {
+    id: uuidv4(),
+    name: `${firstName} ${lastName}`,
+    email: faker.internet.email({ firstName, lastName }),
+    password: 'password123',
+    role: 'candidate',
+    avatarUrl: faker.image.avatar(),
+    stage: status,
+    personalDetails: { /* ... */ },
+    education: [],
+    workExperience: [],
+    projects: [],
+    skills: faker.helpers.arrayElements(['JavaScript', 'HTML', 'CSS', 'REST APIs', 'Git'], { min: 2, max: 4 }),
+    
+    appliedJobs: appliedJobs, // The original, detailed data
+    appliedJobIds: appliedJobIds, // The new, denormalized array for indexing
+    
+    achievements: [],
+    resumeUrl: '',
+    notes: faker.datatype.boolean(0.3) ? faker.lorem.sentence() : '',
+    createdAt: faker.date.past().toISOString(),
+    updatedAt: faker.date.recent().toISOString(),
+  };
+}
+
+/**
+ * --- The Main Seeding Function ---
+ * Clears and populates the database with fresh data.
+ */
+export async function seedDatabase() {
+  try {
+    console.log('--- DATABASE SEEDING STARTED ---');
+    
+    // Use a transaction for performance and data integrity
+    await db.transaction('rw', db.hrManagers, db.jobs, db.candidates, db.candidateTimeline, async () => {
+      // 1. Clear all existing data
+      await Promise.all([
+        db.hrManagers.clear(),
+        db.jobs.clear(),
+        db.candidates.clear(),
+        db.candidateTimeline.clear(),
+      ]);
+      console.log('Cleared all tables.');
+
+      // 2. Create HR Managers
+      const managers = [
+        createHRManager('Admin User', 'admin@talentflow.com', 'admin123'),
+        createHRManager('Jane Doe', 'jane@talentflow.com', 'jane123'),
+      ];
+      await db.hrManagers.bulkAdd(managers);
+      console.log(`Created ${managers.length} HR managers. Login with 'admin@talentflow.com' and 'admin123'.`);
+
+      // 3. Create 25 Jobs
+      const jobs = [];
+      for (let i = 0; i < 25; i++) {
+        jobs.push(createJob(i + 1));
+      }
+      await db.jobs.bulkAdd(jobs);
+      console.log('Created 25 jobs.');
+
+      // 4. Create 1000 Candidates and initial timeline events
+      const candidates = [];
+      const timelineEvents = [];
+      const jobIds = jobs.map(j => j.id);
+      const stages = ['applied', 'screen', 'tech', 'offer', 'hired', 'rejected'];
+
+      for (let i = 0; i < 1000; i++) {
+        const randomJobId = faker.helpers.arrayElement(jobIds);
+        const randomStage = faker.helpers.arrayElement(stages);
+        const candidate = createCandidate(randomJobId, randomStage);
+        candidates.push(candidate);
+        
+        // Create an "Applied" event for their timeline
+        timelineEvents.push({
+          candidateId: candidate.id,
+          jobId: randomJobId,
+          actionType: 'Applied',
+          details: { note: 'Candidate applied via external job board.' },
+          actorId: managers[0].id,
+          actorName: managers[0].name,
+          timestamp: candidate.createdAt,
+        });
+      }
+      await db.candidates.bulkAdd(candidates);
+      await db.candidateTimeline.bulkAdd(timelineEvents);
+      console.log('Created 1000 candidates with initial timeline events.');
     });
 
-    console.log('Database seeded successfully!');
-    console.log(`Added ${seedData.jobs.length} jobs`);
-    console.log(`Added ${seedData.candidates.length} candidates`);
-    console.log(`Added ${seedData.candidateTimeline.length} timeline entries`);
-    console.log(`Added ${seedData.assessments.length} assessments`);
-    console.log(`Added ${seedData.users.length} users`);
+    console.log('--- ✅ DATABASE SEEDING COMPLETE ---');
+    alert('Database has been successfully seeded!');
+
   } catch (error) {
-    console.error('Error seeding database:', error);
+    console.error('❌ Database seeding failed:', error);
+    alert('Error seeding database. Check the console for details.');
   }
-};
+}

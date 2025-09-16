@@ -24,6 +24,7 @@
  * @property {Array<{name: string, description: string, technologies: string[], link?: string, associatedWith?: string}>} projects
  * @property {string[]} skills
  * @property {AppliedJob[]} appliedJobs
+ * @property {string[]} appliedJobIds
  * @property {string[]} achievements
  * @property {string} resumeUrl
  * @property {string} createdAt

@@ -8,7 +8,7 @@ export const db = new Dexie('TalentFlowDB');
 // 2. Define the schema on the instance.
 db.version(1).stores({
   jobs: `id, title, slug, status, order, *tags`,
-  candidates: `id, name, email, stage, *skills, *[appliedJobs.jobId]`,
+  candidates: `id, name, email, stage, *skills, *appliedJobId`,
   hrManagers: `id, email`,
   assessments: `id, jobId`,
   assessmentResponses: `id, [assessmentId+candidateId], candidateId`,
