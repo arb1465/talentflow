@@ -1,320 +1,190 @@
-import { http, HttpResponse } from 'msw';
-import { db } from '../db/index.js';
+// src/mocks/handlers.js
+
+import { http, HttpResponse, delay } from 'msw';
+import { db } from '../db'; // Import your Dexie database instance
 import { v4 as uuidv4 } from 'uuid';
 
-// Helper function to add artificial latency and error rate
-const withLatencyAndErrors = async (handler, errorRate = 0.1) => {
-  // Add artificial latency (200-1200ms)
-  const latency = Math.random() * 1000 + 200;
-  await new Promise(resolve => setTimeout(resolve, latency));
-  
-  // Random error rate (5-10% on write operations)
-  if (Math.random() < errorRate) {
-    return HttpResponse.json(
-      { error: 'Internal Server Error', message: 'Something went wrong' },
-      { status: 500 }
-    );
+// --- Configuration for Simulation ---
+const FAKE_DELAY_MS = 500; // Simulate a 500ms network delay
+const FAKE_ERROR_RATE = 0.1; // 10% chance of a random server error on writes
+
+// --- Helper to simulate a random error ---
+const simulateRandomError = () => {
+  if (Math.random() < FAKE_ERROR_RATE) {
+    throw new Error('A random server error occurred! Please try again.');
   }
-  
-  return handler();
 };
 
 export const handlers = [
-  // Jobs endpoints
-  http.get('/api/jobs', async ({ request }) => {
-    return withLatencyAndErrors(async () => {
-      const url = new URL(request.url);
-      const search = url.searchParams.get('search') || '';
-      const status = url.searchParams.get('status') || '';
-      const page = parseInt(url.searchParams.get('page') || '1');
-      const pageSize = parseInt(url.searchParams.get('pageSize') || '10');
-      const sort = url.searchParams.get('sort') || 'order';
+  // =================================================================
+  // ==  JOB HANDLERS
+  // =================================================================
 
-      let query = db.jobs.orderBy(sort);
+   http.get('/jobs', async () => {
+    try {
+      // 1. Fetch the raw list of jobs from the database
+      const jobsFromDB = await db.jobs.toArray();
+
+      // 2. Enhance each job with its candidate count
+      const enhancedJobs = await Promise.all(
+        jobsFromDB.map(async (job) => {
+          // For each job, perform a query to count the candidates
+          const candidatesCount = await db.candidates
+            .where('appliedJobIds')
+            .equals(job.id)
+            .count();
+          
+          // Return a new object that includes the job data AND the count
+          return { ...job, candidatesCount };
+        })
+      );
+
+      // 3. Simulate a network delay
+      await delay(FAKE_DELAY_MS);
       
-      if (status) {
-        query = query.filter(job => job.status === status);
-      }
-      
-      if (search) {
-        query = query.filter(job => 
-          job.title.toLowerCase().includes(search.toLowerCase()) ||
-          job.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()))
-        );
-      }
+      // 4. Return the final, enhanced list of jobs
+      return HttpResponse.json(enhancedJobs);
 
-      const jobs = await query.toArray();
-      const total = jobs.length;
-      const startIndex = (page - 1) * pageSize;
-      const paginatedJobs = jobs.slice(startIndex, startIndex + pageSize);
+    } catch (error) {
+      console.error("Error in GET /jobs handler:", error);
 
-      return HttpResponse.json({
-        data: paginatedJobs,
-        pagination: {
-          page,
-          pageSize,
-          total,
-          totalPages: Math.ceil(total / pageSize)
-        }
-      });
-    });
+      return HttpResponse.json(
+        { error: error.message || 'A server error occurred.' }, 
+        { status: 500 }
+      );
+    }
   }),
 
-  http.post('/api/jobs', async ({ request }) => {
-    return withLatencyAndErrors(async () => {
-      const jobData = await request.json();
+
+  /**
+   * Handler for: GET /jobs/:jobId
+   * Fetches a single job by its ID.
+   */
+  http.get('/jobs/:jobId', async ({ params }) => {
+    const { jobId } = params;
+    const job = await db.jobs.get(jobId);
+    
+    await delay(FAKE_DELAY_MS);
+    
+    if (job) {
+      return HttpResponse.json(job);
+    }
+    return new HttpResponse(null, { status: 404, statusText: 'Job Not Found' });
+  }),
+
+
+  /**
+   * Handler for: POST /jobs
+   * Creates a new job.
+   */
+  http.post('/jobs', async ({ request }) => {
+    try {
+      simulateRandomError();
+      const newJobData = await request.json();
+
+      // Basic validation
+      if (!newJobData.title) {
+        return HttpResponse.json({ error: 'Job title is required.' }, { status: 400 });
+      }
+
       const newJob = {
         id: uuidv4(),
-        ...jobData,
+        slug: newJobData.title.toLowerCase().replace(/\s+/g, '-'),
+        status: 'active',
+        order: (await db.jobs.count()) + 1,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        ...newJobData, // Spread the rest of the data from the form
       };
-
+      
       await db.jobs.add(newJob);
+      await delay(FAKE_DELAY_MS);
+      
       return HttpResponse.json(newJob, { status: 201 });
-    }, 0.08);
+
+    } catch (error) {
+      return HttpResponse.json({ error: error.message }, { status: 500 });
+    }
   }),
 
-  http.patch('/api/jobs/:id', async ({ params, request }) => {
-    return withLatencyAndErrors(async () => {
-      const { id } = params;
+  /**
+   * Handler for: PATCH /jobs/:jobId
+   * Updates an existing job.
+   */
+  http.patch('/jobs/:jobId', async ({ request, params }) => {
+    try {
+      simulateRandomError();
+      const { jobId } = params;
       const updates = await request.json();
-      
-      await db.jobs.update(id, {
+
+      const updatedCount = await db.jobs.update(jobId, {
         ...updates,
         updatedAt: new Date().toISOString()
       });
 
-      const updatedJob = await db.jobs.get(id);
+      if (updatedCount === 0) {
+        return new HttpResponse(null, { status: 404, statusText: 'Job Not Found' });
+      }
+      
+      await delay(FAKE_DELAY_MS);
+      const updatedJob = await db.jobs.get(jobId);
       return HttpResponse.json(updatedJob);
-    }, 0.08);
+
+    } catch (error) {
+      return HttpResponse.json({ error: error.message }, { status: 500 });
+    }
   }),
+  
+  /**
+   * Handler for: PATCH /jobs/:jobId/reorder
+   * Handles drag-and-drop reordering.
+   */
+  http.patch('/jobs/:jobId', async ({ request, params }) => {
+    try {
+      simulateRandomError(); // This will help us test the rollback
+      const { jobId } = params;
+      const updates = await request.json(); // This will be { status: 'archived' }
 
-  http.patch('/api/jobs/:id/reorder', async ({ params, request }) => {
-    return withLatencyAndErrors(async () => {
-      const { id } = params;
-      const { toOrder } = await request.json();
-      
-      // Simulate reordering logic
-      const job = await db.jobs.get(id);
-      if (!job) {
-        return HttpResponse.json({ error: 'Job not found' }, { status: 404 });
-      }
-
-      await db.jobs.update(id, { order: toOrder });
-      
-      // Update other jobs' orders as needed
-      const allJobs = await db.jobs.orderBy('order').toArray();
-      const updates = [];
-      
-      allJobs.forEach((j, index) => {
-        if (j.id !== id) {
-          updates.push(db.jobs.update(j.id, { order: index }));
-        }
-      });
-      
-      await Promise.all(updates);
-      
-      return HttpResponse.json({ success: true });
-    }, 0.15); // Higher error rate for reorder to test rollback
-  }),
-
-  // Candidates endpoints
-  http.get('/api/candidates', async ({ request }) => {
-    return withLatencyAndErrors(async () => {
-      const url = new URL(request.url);
-      const search = url.searchParams.get('search') || '';
-      const stage = url.searchParams.get('stage') || '';
-      const page = parseInt(url.searchParams.get('page') || '1');
-      const pageSize = parseInt(url.searchParams.get('pageSize') || '50');
-
-      let query = db.candidates.orderBy('createdAt').reverse();
-      
-      if (stage) {
-        query = query.filter(candidate => candidate.stage === stage);
-      }
-      
-      if (search) {
-        query = query.filter(candidate => 
-          candidate.name.toLowerCase().includes(search.toLowerCase()) ||
-          candidate.email.toLowerCase().includes(search.toLowerCase())
-        );
-      }
-
-      const candidates = await query.toArray();
-      const total = candidates.length;
-      const startIndex = (page - 1) * pageSize;
-      const paginatedCandidates = candidates.slice(startIndex, startIndex + pageSize);
-
-      return HttpResponse.json({
-        data: paginatedCandidates,
-        pagination: {
-          page,
-          pageSize,
-          total,
-          totalPages: Math.ceil(total / pageSize)
-        }
-      });
-    });
-  }),
-
-  http.post('/api/candidates', async ({ request }) => {
-    return withLatencyAndErrors(async () => {
-      const candidateData = await request.json();
-      const newCandidate = {
-        id: uuidv4(),
-        ...candidateData,
-        stage: 'applied',
-        notes: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
-      await db.candidates.add(newCandidate);
-      
-      // Add timeline entry
-      await db.candidateTimeline.add({
-        id: uuidv4(),
-        candidateId: newCandidate.id,
-        action: 'applied',
-        fromStage: null,
-        toStage: 'applied',
-        timestamp: new Date().toISOString(),
-        userId: 'system',
-        userName: 'System'
-      });
-
-      return HttpResponse.json(newCandidate, { status: 201 });
-    }, 0.08);
-  }),
-
-  http.patch('/api/candidates/:id', async ({ params, request }) => {
-    return withLatencyAndErrors(async () => {
-      const { id } = params;
-      const updates = await request.json();
-      
-      const candidate = await db.candidates.get(id);
-      if (!candidate) {
-        return HttpResponse.json({ error: 'Candidate not found' }, { status: 404 });
-      }
-
-      // If stage is changing, add timeline entry
-      if (updates.stage && updates.stage !== candidate.stage) {
-        await db.candidateTimeline.add({
-          id: uuidv4(),
-          candidateId: id,
-          action: 'stage_change',
-          fromStage: candidate.stage,
-          toStage: updates.stage,
-          timestamp: new Date().toISOString(),
-          userId: 'current-user',
-          userName: 'Current User'
-        });
-      }
-
-      await db.candidates.update(id, {
+      await db.jobs.update(jobId, {
         ...updates,
         updatedAt: new Date().toISOString()
       });
-
-      const updatedCandidate = await db.candidates.get(id);
-      return HttpResponse.json(updatedCandidate);
-    }, 0.08);
-  }),
-
-  http.get('/api/candidates/:id/timeline', async ({ params }) => {
-    return withLatencyAndErrors(async () => {
-      const { id } = params;
-      const timeline = await db.candidateTimeline
-        .where('candidateId')
-        .equals(id)
-        .orderBy('timestamp')
-        .toArray();
-
-      return HttpResponse.json(timeline);
-    });
-  }),
-
-  // Assessments endpoints
-  http.get('/api/assessments/:jobId', async ({ params }) => {
-    return withLatencyAndErrors(async () => {
-      const { jobId } = params;
-      const assessment = await db.assessments
-        .where('jobId')
-        .equals(jobId)
-        .first();
-
-      if (!assessment) {
-        return HttpResponse.json(null, { status: 404 });
-      }
-
-      return HttpResponse.json(assessment);
-    });
-  }),
-
-  http.put('/api/assessments/:jobId', async ({ params, request }) => {
-    return withLatencyAndErrors(async () => {
-      const { jobId } = params;
-      const assessmentData = await request.json();
       
-      const existingAssessment = await db.assessments
-        .where('jobId')
-        .equals(jobId)
-        .first();
+      await delay(FAKE_DELAY_MS);
+      const updatedJob = await db.jobs.get(jobId);
+      return HttpResponse.json(updatedJob);
 
-      if (existingAssessment) {
-        await db.assessments.update(existingAssessment.id, {
-          ...assessmentData,
-          updatedAt: new Date().toISOString()
-        });
-        const updated = await db.assessments.get(existingAssessment.id);
-        return HttpResponse.json(updated);
-      } else {
-        const newAssessment = {
-          id: uuidv4(),
-          jobId,
-          ...assessmentData,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        await db.assessments.add(newAssessment);
-        return HttpResponse.json(newAssessment, { status: 201 });
-      }
-    }, 0.08);
+    } catch (error) {
+      return HttpResponse.json({ error: error.message }, { status: 500 });
+    }
   }),
 
-  http.post('/api/assessments/:jobId/submit', async ({ params, request }) => {
-    return withLatencyAndErrors(async () => {
+  http.delete('/jobs/:jobId', async ({ params }) => {
+    try {
+      simulateRandomError(); // For testing error states
       const { jobId } = params;
-      const { candidateId, responses } = await request.json();
-      
-      const assessment = await db.assessments
-        .where('jobId')
-        .equals(jobId)
-        .first();
 
-      if (!assessment) {
-        return HttpResponse.json({ error: 'Assessment not found' }, { status: 404 });
+      // Find the job first to make sure it exists
+      const jobExists = await db.jobs.get(jobId);
+      if (!jobExists) {
+        return new HttpResponse(JSON.stringify({ error: 'Job not found.' }), { status: 404 });
       }
 
-      const response = {
-        id: uuidv4(),
-        assessmentId: assessment.id,
-        candidateId,
-        responses,
-        submittedAt: new Date().toISOString()
-      };
+      // Delete the job from the Dexie database
+      await db.jobs.delete(jobId);
+      
+      await delay(FAKE_DELAY_MS);
+      
+      // Send a success response with no content
+      return new HttpResponse(null, { status: 204 });
 
-      await db.assessmentResponses.add(response);
-      return HttpResponse.json(response, { status: 201 });
-    }, 0.08);
+    } catch (error) {
+      return HttpResponse.json({ error: error.message }, { status: 500 });
+    }
   }),
 
-  // Users endpoint for @mentions
-  http.get('/api/users', async () => {
-    return withLatencyAndErrors(async () => {
-      const users = await db.users.toArray();
-      return HttpResponse.json(users);
-    });
-  })
+  // =================================================================
+  // ==  Add your CANDIDATE and ASSESSMENT handlers below...
+  // =================================================================
+
 ];
