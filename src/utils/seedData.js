@@ -76,22 +76,9 @@ function createCandidate(jobId, status) {
   const firstName = faker.person.firstName();
   const lastName = faker.person.lastName();
   
-  // 1. First, create the detailed application object(s).
-  //    For simplicity, we'll start each candidate with one application.
-  const appliedJobs = [
-    { 
-      jobId, 
-      status, 
-      appliedOn: faker.date.recent().toISOString() 
-    }
-  ];
-
-  // 2. THIS IS THE FIX: Create the simple array for indexing.
-  //    We use .map() to extract just the 'jobId' from each object in the appliedJobs array.
+  const appliedJobs = [{ jobId, status, appliedOn: faker.date.recent().toISOString() }];
   const appliedJobIds = appliedJobs.map(app => app.jobId);
 
-
-  // 3. Return the complete candidate object, including the new field.
   return {
     id: uuidv4(),
     name: `${firstName} ${lastName}`,
@@ -105,10 +92,8 @@ function createCandidate(jobId, status) {
     workExperience: [],
     projects: [],
     skills: faker.helpers.arrayElements(['JavaScript', 'HTML', 'CSS', 'REST APIs', 'Git'], { min: 2, max: 4 }),
-    
-    appliedJobs: appliedJobs, // The original, detailed data
-    appliedJobIds: appliedJobIds, // The new, denormalized array for indexing
-    
+    appliedJobs: appliedJobs,
+    appliedJobIds: appliedJobIds, 
     achievements: [],
     resumeUrl: '',
     notes: faker.datatype.boolean(0.3) ? faker.lorem.sentence() : '',
@@ -181,7 +166,7 @@ export async function seedDatabase() {
     });
 
     console.log('--- ✅ DATABASE SEEDING COMPLETE ---');
-    alert('Database has been successfully seeded!');
+    // alert('Database has been successfully seeded!');
 
   } catch (error) {
     console.error('❌ Database seeding failed:', error);

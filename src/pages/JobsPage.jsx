@@ -24,88 +24,12 @@ import {
 // --- ADD THIS CORRECTED BLOCK ---
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
+import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-
-// // --- Temporary Static Data (to be replaced by API call) ---
-// const fakeJobs = [
-//   { id: 1, title: 'Senior Frontend Engineer', company: { name: 'Innovate Inc.' }, tags: ['React', 'TypeScript', 'Remote'], salary: { formatted: '$120 - $150k/year' }, location: 'Remote', candidatesCount: 5, status: 'active' },
-//   { id: 2, title: 'UX/UI Designer', company: { name: 'Creative Solutions' }, tags: ['Figma', 'User Research'], salary: { formatted: '$90 - $110k/year' }, location: 'New York, NY', candidatesCount: 12, status: 'active' },
-//   { id: 3, title: 'Archived - Product Manager', company: { name: 'Innovate Inc.' }, tags: ['Agile', 'Roadmap'], salary: { formatted: '$130 - $160k/year' }, location: 'Remote', candidatesCount: 2, status: 'archived' },
-//   { 
-//     id: 4, 
-//     title: 'Backend Engineer', 
-//     company: { name: 'Techify Labs' }, 
-//     tags: ['Node.js', 'PostgreSQL', 'Docker'], 
-//     salary: { formatted: '$110 - $140k/year' }, 
-//     location: 'Austin, TX', 
-//     candidatesCount: 8, 
-//     status: 'archived' 
-//   },
-//   { 
-//     id: 5, 
-//     title: 'Data Scientist', 
-//     company: { name: 'AI Ventures' }, 
-//     tags: ['Python', 'Machine Learning', 'Pandas'], 
-//     salary: { formatted: '$100 - $130k/year' }, 
-//     location: 'San Francisco, CA', 
-//     candidatesCount: 20, 
-//     status: 'active' 
-//   },
-//   { 
-//     id: 6, 
-//     title: 'DevOps Engineer', 
-//     company: { name: 'CloudOps Ltd.' }, 
-//     tags: ['AWS', 'Kubernetes', 'CI/CD'], 
-//     salary: { formatted: '$115 - $140k/year' }, 
-//     location: 'Remote', 
-//     candidatesCount: 6, 
-//     status: 'active' 
-//   },
-//   { 
-//     id: 7, 
-//     title: 'Mobile App Developer', 
-//     company: { name: 'Appify' }, 
-//     tags: ['Flutter', 'iOS', 'Android'], 
-//     salary: { formatted: '$95 - $120k/year' }, 
-//     location: 'Boston, MA', 
-//     candidatesCount: 10, 
-//     status: 'active' 
-//   },
-//   { 
-//     id: 8, 
-//     title: 'QA Automation Engineer', 
-//     company: { name: 'QualityFirst' }, 
-//     tags: ['Selenium', 'Cypress', 'Jest'], 
-//     salary: { formatted: '$85 - $105k/year' }, 
-//     location: 'Chicago, IL', 
-//     candidatesCount: 4, 
-//     status: 'archived' 
-//   },
-//   { 
-//     id: 9, 
-//     title: 'Full Stack Developer', 
-//     company: { name: 'NextGen Solutions' }, 
-//     tags: ['React', 'Node.js', 'GraphQL'], 
-//     salary: { formatted: '$105 - $135k/year' }, 
-//     location: 'Remote', 
-//     candidatesCount: 15, 
-//     status: 'active' 
-//   },
-//   { 
-//     id: 10, 
-//     title: 'Cybersecurity Analyst', 
-//     company: { name: 'SecureTech' }, 
-//     tags: ['Network Security', 'SIEM', 'Threat Analysis'], 
-//     salary: { formatted: '$100 - $125k/year' }, 
-//     location: 'Washington, DC', 
-//     candidatesCount: 3, 
-//     status: 'active' 
-//   }
-// ];
 
 const fetchJobs = async () => {
   // We'll replace this with a real fetch call once MSW is set up.
@@ -162,7 +86,10 @@ function JobCard({ job }) {
         <IconButton size="small" aria-label="archive"><ArchiveIcon fontSize="small" /></IconButton>
         <IconButton size="small" aria-label="delete"><DeleteIcon fontSize="small" /></IconButton>
         <IconButton component={RouterLink} to={`/jobs/edit/${job.id}`} size="small" aria-label="edit">
-          <EditIcon />
+          <EditIcon fontSize='small'/>
+        </IconButton>
+        <IconButton component={RouterLink} to={`/jobs/${job.id}`} size="small" aria-label="details">
+          <ArrowRightAltIcon fontSize="small" />
         </IconButton>
       </CardActions>
     </Card>

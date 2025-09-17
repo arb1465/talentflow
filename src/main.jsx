@@ -11,6 +11,7 @@ import { queryClient } from './utils/queryClient.js';
 import { startMSW } from './mocks/browser.js';
 import { seedDatabase } from './utils/seedData.js';
 
+
 // Create MUI theme
 const theme = createTheme({
   palette: {
