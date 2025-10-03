@@ -187,4 +187,108 @@ export const handlers = [
   // ==  Add your CANDIDATE and ASSESSMENT handlers below...
   // =================================================================
 
+  http.get('/candidates', async ({ request }) => {
+    const url = new URL(request.url);
+    const stage = url.searchParams.get('stage');
+    const search = url.searchParams.get('search');
+    
+    // Start with the full collection
+    let candidateQuery = db.candidates;
+
+    // Apply "server-like" filter
+    if (stage && stage !== 'all') {
+      candidateQuery = candidateQuery.where('stage').equals(stage);
+    }
+    
+    let candidates = await candidateQuery.toArray();
+
+    // Apply client-side search (as per assignment) after fetching
+    if (search) {
+      const lowercasedSearch = search.toLowerCase();
+      candidates = candidates.filter(c => 
+        c.name.toLowerCase().includes(lowercasedSearch) ||
+        c.email.toLowerCase().includes(lowercasedSearch)
+      );
+    }
+
+    await delay(FAKE_DELAY_MS);
+    return HttpResponse.json(candidates);
+  }),
+
+
+  /**
+   * Handler for: GET /candidates/:candidateId
+   * Fetches a single candidate and their timeline.
+   */
+  http.get('/candidates/:candidateId', async ({ params }) => {
+    const { candidateId } = params;
+    
+    // 1. Fetch the main candidate profile from Dexie
+    const candidate = await db.candidates.get(candidateId);
+    
+    if (!candidate) {
+      return new HttpResponse(null, { status: 404, statusText: 'Candidate Not Found' });
+    }
+
+    // 2. Also fetch the timeline events for this candidate
+    const timeline = await db.candidateTimeline
+      .where('candidateId').equals(candidateId)
+      .sortBy('timestamp');
+    
+    await delay(500); // Simulate network latency
+    
+    // 3. Return the combined data as a single JSON object
+    return HttpResponse.json({ ...candidate, timeline });
+  }),
+
+
+
+  /**
+   * Handler for: PATCH /candidates/:candidateId
+   * Updates a candidate's details (primarily their stage for the Kanban board).
+   */
+  http.patch('/candidates/:candidateId', async ({ request, params }) => {
+    try {
+      simulateRandomError();
+      const { candidateId } = params;
+      const updates = await request.json(); // e.g., { stage: 'tech' }
+
+      const originalCandidate = await db.candidates.get(candidateId);
+      if (!originalCandidate) {
+        return new HttpResponse(null, { status: 404, statusText: 'Candidate Not Found' });
+      }
+
+      // Log the stage transition to the timeline
+      if (updates.stage && updates.stage !== originalCandidate.stage) {
+        // If it is, create a new timeline event
+        await db.candidateTimeline.add({
+          // id will be auto-incremented
+          candidateId: candidateId,
+          jobId: originalCandidate.appliedJobs[0]?.jobId || null, // Get jobId from the application
+          actionType: 'Stage Change',
+          details: { 
+            fromStage: originalCandidate.stage, 
+            toStage: updates.stage 
+          },
+          actorId: 'hr-admin-1', // Placeholder for the logged-in HR user
+          actorName: 'Admin User',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      await db.candidates.update(candidateId, {
+        ...updates,
+        updatedAt: new Date().toISOString()
+      });
+      
+      await delay(FAKE_DELAY_MS);
+      const updatedCandidate = await db.candidates.get(candidateId);
+      return HttpResponse.json(updatedCandidate);
+
+    } 
+    catch (error) {
+      return HttpResponse.json({ error: error.message }, { status: 500 });
+    }
+  }),
+
 ];

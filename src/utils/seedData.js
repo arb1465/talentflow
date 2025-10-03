@@ -4,6 +4,8 @@ import { db } from '../db';
 import { faker } from '@faker-js/faker';
 import { v4 as uuidv4 } from 'uuid';
 
+const CANDIDATE_STAGES = ['applied', 'screen', 'tech', 'offer', 'hired', 'rejected'];
+
 // --- Helper Functions to Generate Realistic Data ---
 
 /**
@@ -76,6 +78,8 @@ function createCandidate(jobId, status) {
   const firstName = faker.person.firstName();
   const lastName = faker.person.lastName();
   
+  const randomStage = faker.helpers.arrayElement(CANDIDATE_STAGES);
+  
   const appliedJobs = [{ jobId, status, appliedOn: faker.date.recent().toISOString() }];
   const appliedJobIds = appliedJobs.map(app => app.jobId);
 
@@ -86,7 +90,7 @@ function createCandidate(jobId, status) {
     password: 'password123',
     role: 'candidate',
     avatarUrl: faker.image.avatar(),
-    stage: status,
+    stage: randomStage,
     personalDetails: { /* ... */ },
     education: [],
     workExperience: [],

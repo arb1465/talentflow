@@ -141,9 +141,31 @@ function JobsPage() {
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-        {/* ... Header content ... */}
+       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+          Jobs
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+          <Button variant="outlined" startIcon={<FilterListIcon />}>
+            Apply Filter
+          </Button>
+          <TextField 
+            size="small" 
+            placeholder="Search Job..." 
+            variant="outlined"
+            sx={{ minWidth: '250px' }}
+            InputProps={{ endAdornment: <SearchIcon sx={{ color: 'action.active' }} /> }}
+          />
+          <Button component={RouterLink} to="/jobs/create" variant="contained" color="primary" startIcon={<AddIcon />}>
+            Create Job
+          </Button>
+          <IconButton>
+            <AccountCircleIcon />
+          </IconButton>
+        </Box>
       </Box>
+
+      
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={currentTab} onChange={handleTabChange}>
           <Tab label={`Active Jobs (${activeJobs.length})`} />

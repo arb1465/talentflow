@@ -1,70 +1,90 @@
+// src/hooks/useCandidates.js
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { candidatesAPI } from '../utils/api.js';
+// import { db } from '../db'; // We might need this for some direct interactions
 
-// Candidates query keys
-export const candidatesKeys = {
-  all: ['candidates'],
-  lists: () => [...candidatesKeys.all, 'list'],
-  list: (filters) => [...candidatesKeys.lists(), filters],
-  details: () => [...candidatesKeys.all, 'detail'],
-  detail: (id) => [...candidatesKeys.details(), id],
-  timeline: (id) => [...candidatesKeys.detail(id), 'timeline'],
+// --- API Fetching Functions ---
+
+/**
+ * Fetches a list of candidates from the mock API.
+ * @param {object} filters - The filters to apply.
+ * @param {string} filters.stage - Filter by candidate stage.
+ * @param {string} filters.search - Search by name or email.
+ */
+const fetchCandidates = async ({ stage, search }) => {
+  const queryParams = new URLSearchParams();
+  if (stage && stage !== 'all') queryParams.set('stage', stage);
+  if (search) queryParams.set('search', search);
+
+  const response = await fetch(`/candidates?${queryParams.toString()}`);
+  if (!response.ok) throw new Error('Network response was not ok');
+  return response.json();
 };
 
-// Get candidates with pagination and filters
-export const useCandidates = (params = {}) => {
-  return useQuery({
-    queryKey: candidatesKeys.list(params),
-    queryFn: () => candidatesAPI.getCandidates(params),
+/**
+ * Updates a candidate's stage.
+ * @param {object} data
+ * @param {string} data.candidateId
+ * @param {string} data.stage
+ */
+const updateCandidateStage = async ({ candidateId, stage }) => {
+  const response = await fetch(`/candidates/${candidateId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stage }),
   });
+  if (!response.ok) throw new Error('Failed to update candidate stage.');
+  return response.json();
 };
 
-// Get single candidate
-export const useCandidate = (id) => {
+
+// --- Custom Hooks ---
+
+/**
+ * Hook to fetch and manage the list of candidates.
+ * @param {object} filters
+ */
+export function useCandidates(filters) {
   return useQuery({
-    queryKey: candidatesKeys.detail(id),
-    queryFn: () => candidatesAPI.getCandidate(id),
-    enabled: !!id,
+    queryKey: ['candidates', filters], // The query key now includes filters
+    queryFn: () => fetchCandidates(filters),
   });
-};
+}
 
-// Get candidate timeline
-export const useCandidateTimeline = (id) => {
-  return useQuery({
-    queryKey: candidatesKeys.timeline(id),
-    queryFn: () => candidatesAPI.getCandidateTimeline(id),
-    enabled: !!id,
-  });
-};
-
-// Create candidate mutation
-export const useCreateCandidate = () => {
+/**
+ * Hook to provide the mutation for updating a candidate's stage.
+ */
+export function useUpdateCandidateStage() {
   const queryClient = useQueryClient();
-
+  
   return useMutation({
-    mutationFn: candidatesAPI.createCandidate,
-    onSuccess: () => {
-      // Invalidate candidates list queries
-      queryClient.invalidateQueries({ queryKey: candidatesKeys.lists() });
+    mutationFn: updateCandidateStage,
+    // We will use optimistic updates for the Kanban board
+    onMutate: async ({ candidateId, stage }) => {
+      await queryClient.cancelQueries({ queryKey: ['candidates'] });
+      const previousCandidates = queryClient.getQueryData(['candidates']);
+      
+      // Optimistically update the local cache
+      queryClient.setQueryData(['candidates'], (oldData) =>
+        oldData?.map(c => c.id === candidateId ? { ...c, stage } : c)
+      );
+      
+      return { previousCandidates };
     },
-  });
-};
-
-// Update candidate mutation (for stage changes, etc.)
-export const useUpdateCandidate = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, ...updates }) => candidatesAPI.updateCandidate(id, updates),
-    onSuccess: (data, variables) => {
-      // Update the specific candidate in cache
-      queryClient.setQueryData(candidatesKeys.detail(variables.id), data);
-      // Invalidate timeline if stage changed
-      if (variables.stage) {
-        queryClient.invalidateQueries({ queryKey: candidatesKeys.timeline(variables.id) });
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousCandidates) {
+        queryClient.setQueryData(['candidates'], context.previousCandidates);
       }
-      // Invalidate lists to refresh
-      queryClient.invalidateQueries({ queryKey: candidatesKeys.lists() });
+    },
+    onSettled: (updatedCandidate, error, { candidateId }) => {
+      // 1. Invalidate the main list of all candidates (for the Kanban board)
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
+      
+      // 2. ALSO invalidate the specific query for the candidate we just updated.
+      //    This ensures the detail page will refetch fresh data.
+      queryClient.invalidateQueries({ queryKey: ['candidate', candidateId] });
     },
   });
-};
+}
+
