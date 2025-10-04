@@ -291,4 +291,45 @@ export const handlers = [
     }
   }),
 
+
+  
+  /**
+   * Handler for: POST /candidates/:candidateId/notes
+   * Adds a new note to a candidate.
+   */
+  http.post('/candidates/:candidateId/notes', async ({ request, params }) => {
+    try {
+      simulateRandomError();
+      const { candidateId } = params;
+      const { content, authorId, authorName } = await request.json();
+
+      if (!content) {
+        return HttpResponse.json({ error: 'Note content cannot be empty.' }, { status: 400 });
+      }
+
+      const candidate = await db.candidates.get(candidateId);
+      if (!candidate) {
+        return HttpResponse.json({ error: 'Candidate not found.' }, { status: 404 });
+      }
+
+      const newNote = {
+        id: uuidv4(),
+        content,
+        authorId,
+        authorName,
+        createdAt: new Date().toISOString(),
+      };
+
+      const updatedNotes = [...(candidate.notes || []), newNote];
+
+      await db.candidates.update(candidateId, { notes: updatedNotes });
+
+      await delay(FAKE_DELAY_MS);
+      return HttpResponse.json(newNote, { status: 201 });
+
+    } catch (error) {
+      return HttpResponse.json({ error: error.message }, { status: 500 });
+    }
+  }),
+
 ];

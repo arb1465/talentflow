@@ -3,16 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {
   Typography, Box, Button, Paper, Grid, TextField, Container,
-  CircularProgress, Avatar, Stepper, Step, StepLabel, StepConnector, MenuItem,
-  StepContent
+  CircularProgress, Avatar, Stepper, Step, StepLabel, MenuItem,
+  StepContent, List, ListItem, ListItemText, ListItemAvatar
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
+const MOCK_USERS = [
+  { id: 'hr-admin-1', name: 'Admin User' },
+  { id: 'hr-admin-2', name: 'Jane Doe' },
+];
 
 // --- Define the authoritative order of our hiring stages ---
-const TIMELINE_STAGES = ['applied', 'screen', 'tech', 'offer', 'hired', 'rejected'];
+const TIMELINE_STAGES = ['applied', 'screen', 'tech', 'offer', 'rejected', 'hired'];
 
 // --- API Fetching and Updating Functions ---
 const fetchCandidateDetails = async (candidateId) => {
@@ -31,15 +35,32 @@ const updateCandidate = async ({ candidateId, updates }) => {
   return response.json();
 };
 
+// --- New API function for adding a note ---
+const addNoteToCandidate = async ({ candidateId, content }) => {
+  const response = await fetch(`/candidates/${candidateId}/notes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      content,
+      authorId: 'hr-admin-1', // In a real app, this would be the logged-in user's ID
+      authorName: 'Admin User'
+    }),
+  });
+  if (!response.ok) throw new Error('Failed to add note.');
+  return response.json();
+};
+
 
 function CandidateDetailPage() {
   const { candidateId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  console.log("Fetching details for candidateId:", candidateId, "Type:", typeof candidateId); // Add this line
 
   // State for the editable fields
   const [stage, setStage] = useState('');
-  const [note, setNote] = useState('');
+  const [newNote, setNewNote] = useState('');
 
   // Fetch the candidate data
   const { data: candidate, isLoading, isError, error } = useQuery({
@@ -51,7 +72,6 @@ function CandidateDetailPage() {
   useEffect(() => {
     if (candidate) {
       setStage(candidate.stage);
-      setNote(candidate.notes || '');
     }
   }, [candidate]);
 
@@ -73,10 +93,27 @@ function CandidateDetailPage() {
   const handleUpdate = () => {
     const updates = {};
     if (stage !== candidate.stage) updates.stage = stage;
-    if (note !== candidate.notes) updates.notes = note;
     
     if (Object.keys(updates).length > 0) {
       updateMutation.mutate({ candidateId, updates });
+    }
+  };
+
+  const addNoteMutation = useMutation({
+    mutationFn: addNoteToCandidate,
+    onSuccess: () => {
+      // When a note is added successfully, refetch the candidate data to show the new note
+      queryClient.invalidateQueries({ queryKey: ['candidate', candidateId] });
+      setNewNote(''); // Clear the input field
+    },
+    onError: (err) => {
+      alert(`Failed to add note: ${err.message}`);
+    }
+  });
+
+  const handleAddNote = () => {
+    if (newNote.trim()) {
+      addNoteMutation.mutate({ candidateId, content: newNote });
     }
   };
 
@@ -112,6 +149,7 @@ function CandidateDetailPage() {
 
       {/* Main Content Paper */}
       <Paper sx={{ p: 4, borderRadius: 2 }}>
+        {/* Main Details */}
         <Grid container spacing={3}>
           {/* Details & Resume */}
           <Grid item xs={12} md={6}>
@@ -122,7 +160,7 @@ function CandidateDetailPage() {
           <Grid item xs={12} md={6}>
             <TextField fullWidth label="Date of Birth" value={candidate.personalDetails?.dateOfBirth || ''} disabled InputProps={{readOnly: true}} />
             <TextField fullWidth label="Gender" value={candidate.personalDetails?.gender || ''} disabled InputProps={{readOnly: true}} sx={{ mt: 2 }} />
-            <Button variant="contained" sx={{ mt: 3, width: '100%', height: 56 }}>View Resume</Button>
+            {/* <Button variant="contained" sx={{ mt: 3, width: '100%', height: 56 }}>View Resume</Button> */}
           </Grid>
         </Grid>
 
@@ -165,10 +203,54 @@ function CandidateDetailPage() {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField fullWidth label="Candidate Note" multiline rows={4} value={note} onChange={(e) => setNote(e.target.value)} />
-          </Grid>
         </Grid>
+        
+        {/* --- THIS IS THE NEW NOTES SECTION --- */}
+        <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 4, mb: 2 }}>Notes</Typography>
+        <List sx={{ mb: 2 }}>
+          {(Array.isArray(candidate.notes) && candidate.notes.length > 0) ? (
+            candidate.notes.map(note => (
+              <ListItem key={note.id} alignItems="flex-start">
+                <ListItemAvatar>
+                  <Avatar>{note.authorName.charAt(0)}</Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                  primary={note.content}
+                  secondary={`${note.authorName} — ${new Date(note.createdAt).toLocaleString()}`}
+                />
+              </ListItem>
+            ))
+          ) : (
+            <Typography color="text.secondary">No notes added yet.</Typography>
+          )}
+        </List>
+
+        {/* Input for adding a new note */}
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <TextField
+            fullWidth
+            label="Add a new note... (try typing @)"
+            multiline
+            rows={3}
+            value={newNote}
+            onChange={(e) => setNewNote(e.target.value)}
+          />
+          <Button
+            variant="contained"
+            onClick={handleAddNote}
+            disabled={addNoteMutation.isPending}
+          >
+            {addNoteMutation.isPending ? 'Adding...' : 'Add Note'}
+          </Button>
+        </Box>
+
+        {/* Simple @mention suggestion renderer */}
+        {newNote.includes('@') && (
+          <Paper sx={{ p: 1, mt: 1 }}>
+             <Typography variant="caption">Suggestions:</Typography>
+             {MOCK_USERS.map(user => <Chip key={user.id} label={user.name} size="small" sx={{ ml: 1 }} />)}
+          </Paper>
+        )}
         
         {/* Action Buttons */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 4 }}>

@@ -1,6 +1,6 @@
 // src/pages/CandidatesPage.jsx
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCandidates, useUpdateCandidateStage } from '../hooks/useCandidates';
 import {
@@ -10,6 +10,7 @@ import SearchIcon from '@mui/icons-material/Search';
 // --- DND-Kit Imports ---
 import { DndContext, useDraggable, useDroppable, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 // --- Define the stages for our Kanban board ---
 const STAGES = [
@@ -84,30 +85,90 @@ function Draggable({ id, data, children }) {
   );
 }
 
+// --- NEW: The Virtualized List Component ---
+const VirtualizedList = ({ items }) => {
+  const Row = ({ index, style }) => {
+    const candidate = items[index];
+    return (
+      <div style={style}>
+        <Draggable key={candidate.id} id={candidate.id} data={{ candidate }}>
+          <CandidateCard candidate={candidate} />
+        </Draggable>
+      </div>
+    );
+  };
+  
 
-function DroppableColumn({ id, title, children }) {
+  return (
+    // AutoSizer provides the width and height of the parent container to the list
+    <AutoSizer>
+      {({ height, width }) => (
+        // --- USE THE CORRECT COMPONENT NAME HERE ---
+        <List
+          height={height}
+          itemCount={items.length}
+          itemSize={120}
+          width={width}
+        >
+          {Row}
+        </List>
+      )}
+    </AutoSizer>
+  );
+};
+
+// --- THIS IS THE NEW, CORRECT DroppableColumn ---
+function DroppableColumn({ id, title, items }) {
   const { setNodeRef, isOver } = useDroppable({ id });
+
+  // 1. Create a ref for the scrolling container
+  const parentRef = useRef();
+
+  // 2. Set up the virtualizer hook
+  const rowVirtualizer = useVirtualizer({
+    count: items.length, // The total number of items
+    getScrollElement: () => parentRef.current, // The element that will scroll
+    estimateSize: () => 120, // The estimated height of each card (px)
+    overscan: 5, // Render 5 extra items above/below the viewport
+  });
 
   return (
     <Paper
       ref={setNodeRef}
       sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%', // It will take the full height of its grid cell
+        display: 'flex', flexDirection: 'column', height: '100%',
         backgroundColor: isOver ? 'action.hover' : 'grey.50',
-        transition: 'background-color 0.2s ease',
-        // CRITICAL: Ensure the Paper itself doesn't try to scroll
-        overflow: 'hidden', 
+        borderRadius: 2, overflow: 'hidden',
       }}
     >
-      <Typography variant="h6" sx={{ p: 2, pb: 1, textAlign: 'center', flexShrink: 0 }}>
-        {title}
-      </Typography>
+      <Typography variant="h6" sx={{  p: 2, pb: 1, textAlign: 'center', flexShrink: 0 }}>{title}</Typography>
       
-      {/* This Box is the ONLY scrolling container */}
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2, pt: 1 }}>
-        {children}
+      {/* 3. This is the scrolling container */}
+      <Box ref={parentRef} sx={{ flexGrow: 1, overflowY: 'auto' }}>
+        {/* 4. We need a container with the total calculated height */}
+        <Box sx={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+          {/* 5. Map over the virtual items, not the full list */}
+          {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+            const candidate = items[virtualItem.index];
+            return (
+              <Box
+                key={virtualItem.key}
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: `${virtualItem.size}px`,
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
+              >
+                <Draggable id={candidate.id} data={{ candidate }}>
+                  <CandidateCard candidate={candidate} />
+                </Draggable>
+              </Box>
+            );
+          })}
+        </Box>
       </Box>
     </Paper>
   );
@@ -183,13 +244,7 @@ function CandidatesPage() {
             <CircularProgress sx={{ margin: 'auto' }} />
           ) : (
             STAGES.map(stage => (
-                <DroppableColumn key={stage.id} id={stage.id} title={stage.title} >
-                  {candidatesByStage[stage.id].map(candidate => (
-                    <Draggable key={candidate.id} id={candidate.id} data={{ candidate }}>
-                      <CandidateCard candidate={candidate} />
-                    </Draggable>
-                  ))}
-                </DroppableColumn>
+              <DroppableColumn key={stage.id} id={stage.id} title={stage.title} items={candidatesByStage[stage.id]} /> 
             ))
           )}
         </Box>

@@ -82,6 +82,17 @@ function createCandidate(jobId, status) {
   
   const appliedJobs = [{ jobId, status, appliedOn: faker.date.recent().toISOString() }];
   const appliedJobIds = appliedJobs.map(app => app.jobId);
+  
+  const notes = [];
+  if (faker.datatype.boolean(0.3)) { // 30% chance of having a note
+    notes.push({
+      id: uuidv4(),
+      content: faker.lorem.sentence(),
+      authorId: 'hr-admin-1', // Placeholder
+      authorName: 'Admin User',
+      createdAt: faker.date.recent().toISOString(),
+    });
+  }
 
   return {
     id: uuidv4(),
@@ -100,7 +111,7 @@ function createCandidate(jobId, status) {
     appliedJobIds: appliedJobIds, 
     achievements: [],
     resumeUrl: '',
-    notes: faker.datatype.boolean(0.3) ? faker.lorem.sentence() : '',
+    notes: notes,
     createdAt: faker.date.past().toISOString(),
     updatedAt: faker.date.recent().toISOString(),
   };
