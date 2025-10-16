@@ -117,6 +117,46 @@ function createCandidate(jobId, status) {
   };
 }
 
+
+/**
+ * Creates a single fake Assessment for a given job.
+ * @param {string} jobId
+ * @returns {import('../types').Assessment}
+ */
+function createAssessment(jobId) {
+  return {
+    id: uuidv4(),
+    jobId,
+    title: `Skills Assessment for ${faker.person.jobTitle()}`,
+    assessmentType: 'Technical Quiz',
+    durationMinutes: 30,
+    order: 1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    sections: [
+      {
+        id: uuidv4(),
+        title: 'Core Concepts',
+        description: 'This section covers fundamental questions.',
+        questions: Array.from({ length: 5 }, (_, i) => ({ // Create 5 questions
+          id: uuidv4(),
+          title: `Question ${i + 1}: ${faker.lorem.sentence().slice(0, -1)}?`,
+          type: faker.helpers.arrayElement(['single-choice', 'short-text']),
+          required: faker.datatype.boolean(),
+          options: [
+            { id: 'opt1', text: 'Option A' },
+            { id: 'opt2', text: 'Option B' },
+            { id: 'opt3', text: 'Option C' },
+          ],
+          validation: {},
+          conditionalLogic: {}
+        }))
+      }
+    ]
+  };
+}
+
+
 /**
  * --- The Main Seeding Function ---
  * Clears and populates the database with fresh data.
@@ -126,13 +166,14 @@ export async function seedDatabase() {
     console.log('--- DATABASE SEEDING STARTED ---');
     
     // Use a transaction for performance and data integrity
-    await db.transaction('rw', db.hrManagers, db.jobs, db.candidates, db.candidateTimeline, async () => {
+    await db.transaction('rw', db.hrManagers, db.jobs, db.candidates, db.candidateTimeline, db.assessments, async () => {
       // 1. Clear all existing data
       await Promise.all([
         db.hrManagers.clear(),
         db.jobs.clear(),
         db.candidates.clear(),
         db.candidateTimeline.clear(),
+        db.assessments.clear(),
       ]);
       console.log('Cleared all tables.');
 
@@ -175,6 +216,17 @@ export async function seedDatabase() {
           timestamp: candidate.createdAt,
         });
       }
+
+      // 5. Create Assessments for some jobs
+      const assessments = [];
+      // Create an assessment for the first 3 jobs
+      for (let i = 0; i < 3; i++) {
+        assessments.push(createAssessment(jobs[i].id));
+      }
+      await db.assessments.bulkAdd(assessments);
+      console.log(`Created ${assessments.length} sample assessments.`);
+
+      
       await db.candidates.bulkAdd(candidates);
       await db.candidateTimeline.bulkAdd(timelineEvents);
       console.log('Created 1000 candidates with initial timeline events.');

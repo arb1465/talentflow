@@ -23,8 +23,8 @@ const STAGES = [
 
 // --- Visual Candidate Card Component (No changes needed) ---
 function CandidateCard({ candidate, isOverlay = false, dragListeners, onClick }) {
-  const colorIndex = candidate.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 5;
-  const pastelColors = ['#D4F0F0', '#cbd5f0ff', '#C4D7F2', '#eee3f7ff'];
+  const colorIndex = candidate.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 4;
+  const pastelColors = ['#bceeeeff', '#b9c1d6ff', '#C4D7F2', '#eee3f7ff'];
 
   return (
     <Paper 
@@ -34,13 +34,12 @@ function CandidateCard({ candidate, isOverlay = false, dragListeners, onClick })
         backgroundColor: pastelColors[colorIndex], 
         overflow: 'hidden', 
         position: 'relative',
-        cursor: 'pointer' // Add pointer cursor to show it's clickable
+        cursor: 'pointer'
       }}
     >
       {!isOverlay && (
         <Box
           {...dragListeners}
-          // The handle also needs to stop the click from bubbling to the Paper
           onClick={(e) => e.stopPropagation()} 
           sx={{
             position: 'absolute', top: 4, right: 4, cursor: 'grab',
@@ -52,15 +51,15 @@ function CandidateCard({ candidate, isOverlay = false, dragListeners, onClick })
       )}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
         <Avatar sx={{ width: 24, height: 24, mr: 1, fontSize: '0.8rem' }}>{candidate.name.charAt(0)}</Avatar>
-        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{candidate.name}</Typography>
+        <Typography variant="subtitle2" noWrap sx={{ fontWeight: 'bold' }}>{candidate.name}</Typography>
       </Box>
       <Typography variant="body2" color="text.secondary" noWrap sx={{ textOverflow: 'ellipsis' }}>{candidate.email}</Typography>
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>Job Title Here</Typography>
+      <Typography variant="caption" color="text.secondary" noWrap sx={{ mt: 1, display: 'block' }}>{Array.isArray(candidate.skills) ? candidate.skills.join(', ') : candidate.skills}</Typography>
     </Paper>
   );
 }
 
-// --- Draggable Wrapper Component ---
+
 function Draggable({ id, data, children }) {
    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id, data });
   const navigate = useNavigate(); // Import useNavigate hook from react-router-dom
@@ -85,46 +84,12 @@ function Draggable({ id, data, children }) {
   );
 }
 
-// --- NEW: The Virtualized List Component ---
-const VirtualizedList = ({ items }) => {
-  const Row = ({ index, style }) => {
-    const candidate = items[index];
-    return (
-      <div style={style}>
-        <Draggable key={candidate.id} id={candidate.id} data={{ candidate }}>
-          <CandidateCard candidate={candidate} />
-        </Draggable>
-      </div>
-    );
-  };
-  
 
-  return (
-    // AutoSizer provides the width and height of the parent container to the list
-    <AutoSizer>
-      {({ height, width }) => (
-        // --- USE THE CORRECT COMPONENT NAME HERE ---
-        <List
-          height={height}
-          itemCount={items.length}
-          itemSize={120}
-          width={width}
-        >
-          {Row}
-        </List>
-      )}
-    </AutoSizer>
-  );
-};
-
-// --- THIS IS THE NEW, CORRECT DroppableColumn ---
 function DroppableColumn({ id, title, items }) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
-  // 1. Create a ref for the scrolling container
   const parentRef = useRef();
 
-  // 2. Set up the virtualizer hook
   const rowVirtualizer = useVirtualizer({
     count: items.length, // The total number of items
     getScrollElement: () => parentRef.current, // The element that will scroll
@@ -141,13 +106,10 @@ function DroppableColumn({ id, title, items }) {
         borderRadius: 2, overflow: 'hidden',
       }}
     >
-      <Typography variant="h6" sx={{  p: 2, pb: 1, textAlign: 'center', flexShrink: 0 }}>{title}</Typography>
+      <Typography variant="h6" sx={{  p: 2, textAlign: 'center', flexShrink: 0 }}>{title}</Typography>
       
-      {/* 3. This is the scrolling container */}
-      <Box ref={parentRef} sx={{ flexGrow: 1, overflowY: 'auto' }}>
-        {/* 4. We need a container with the total calculated height */}
+      <Box ref={parentRef} sx={{ flexGrow: 1, overflowY: 'auto', px: 1 }}>
         <Box sx={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
-          {/* 5. Map over the virtual items, not the full list */}
           {rowVirtualizer.getVirtualItems().map((virtualItem) => {
             const candidate = items[virtualItem.index];
             return (
@@ -174,7 +136,6 @@ function DroppableColumn({ id, title, items }) {
   );
 }
 
-// --- Main Kanban Page Component ---
 function CandidatesPage() {
   const [filters, setFilters] = useState({ stage: 'all', search: '' });
   const [activeCandidate, setActiveCandidate] = useState(null);
@@ -219,7 +180,6 @@ function CandidatesPage() {
           Candidates
         </Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
-          {/* TODO: Implement filter buttons (All, Job Role, Company) */}
           <TextField 
             size="small" 
             placeholder="Search Candidate..."
@@ -233,11 +193,8 @@ function CandidatesPage() {
         <Box sx={{
           flexGrow: 1, // Make the board fill the available vertical space
           display: 'grid',
-          // Create 5 columns that each take up an equal fraction (1fr) of the space.
-          // This is the core of the horizontal layout.
           gridTemplateColumns: 'repeat(5, 1fr)', 
-          gap: 2,
-          // IMPORTANT: Prevent the grid itself from overflowing its container
+          gap: 2, 
           overflow: 'hidden', 
         }}>
           {isLoading ? (

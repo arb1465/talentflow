@@ -146,9 +146,6 @@ function JobsPage() {
           Jobs
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-          <Button variant="outlined" startIcon={<FilterListIcon />}>
-            Apply Filter
-          </Button>
           <TextField 
             size="small" 
             placeholder="Search Job..." 
@@ -176,7 +173,7 @@ function JobsPage() {
       {/* --- Job Cards Grid Section --- */}
       <Grid container spacing={3}>
         {(currentTab === 0 ? activeJobs : archivedJobs).map((job) => (
-          <Grid item key={job.id} xs={12} sm={6} md={4} lg={3}>
+          <Grid item key={job.id} xs={12} sm={6} md={4} lg={3} sx={{ display: 'flex' }}>
             <JobCard job={job} onToggleArchive={handleToggleArchive} onDelete={handleDeleteJob} />
           </Grid>
         ))}
@@ -191,46 +188,45 @@ function JobsPage() {
  *   onToggleArchive: (job: import('../types').Job) => void;
  * }} props 
  */
+
 function JobCard({ job, onToggleArchive, onDelete }) {
   return (
-    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+    <Card sx={{ 
+        height: '100%', // It will stretch to fill the Grid item
+        display: 'flex', 
+        flexDirection: 'column', // Stack its children (content and actions) vertically
+        borderRadius: 2, 
+        boxShadow: '0 4px 12px rgba(0,0,0,0.08)' 
+    }}>
       <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
-          <Box>
-            <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', lineHeight: 1.3 }}>
+          <Box sx={{ minWidth: 0, mr: 1 }}>
+            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold', lineHeight: 1.3 }}>
               {job.title}
             </Typography>
-            <Typography color="text.secondary" variant="body2">
+            <Typography color="text.secondary" variant="body2" noWrap>
               {job.company.name}
             </Typography>
           </Box>
-          <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48, ml: 1 }}>
+          <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48, ml: 1, flexShrink: 0 }}>
             {job.company.name.charAt(0)}
           </Avatar>
         </Box>
+
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, my: 2 }}>
           {job.tags.slice(0, 4).map((tag) => <Chip key={tag} label={tag} size="small" variant="outlined" />)}
         </Box>
-        <Box sx={{ flexGrow: 1 }} />
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        {/* <Box sx={{ flexGrow: 1 }} /> */}
+        
+        <Box sx={{ mt: 'auto', pt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <Box>
-            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-              {job.salary.formatted}
-            </Typography>
             <Typography variant="body2" color="text.secondary">
               {job.location}
             </Typography>
           </Box>
-          <Box sx={{ textAlign: 'right' }}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              {job.candidatesCount}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Candidates
-            </Typography>
-          </Box>
         </Box>
       </CardContent>
+      
       <CardActions sx={{ justifyContent: 'flex-end', pt: 0, pb: 1, px: 1 }}>
         <IconButton size="small" aria-label="Toggle Archive" onClick={() => onToggleArchive(job)}>
           {job.status === 'active' ? <ArchiveIcon fontSize="small" /> : <UnarchiveIcon fontSize="small" />}

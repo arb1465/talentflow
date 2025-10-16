@@ -182,9 +182,17 @@ export const handlers = [
       return HttpResponse.json({ error: error.message }, { status: 500 });
     }
   }),
+  
+  http.get('/jobs/list', async () => {
+    console.log('[MSW] Matched GET /jobs/list'); // Add this for definitive proof
+    const allJobs = await db.jobs.toArray();
+    const jobList = allJobs.map(job => ({ id: job.id, title: job.title, company: job.company }));
+    await delay(300);
+    return HttpResponse.json(jobList);
+  }),
 
   // =================================================================
-  // ==  Add your CANDIDATE and ASSESSMENT handlers below...
+  // == your CANDIDATE handlers below...
   // =================================================================
 
   http.get('/candidates', async ({ request }) => {
@@ -332,4 +340,124 @@ export const handlers = [
     }
   }),
 
+  
+  // =================================================================
+  // ==  your ASSESSMENT handlers below...
+  // =================================================================
+
+  
+  /**
+   * Handler for: GET /assessments
+   * Fetches a list of all assessments, enriched with job details.
+   */
+  http.get('/assessments', async () => {
+    try {
+      // 1. Get all assessments from the database
+      const allAssessments = await db.assessments.toArray();
+      
+      // 2. Enhance each assessment with details from its corresponding job
+      const enrichedAssessments = await Promise.all(
+        allAssessments.map(async (assessment) => {
+          const job = await db.jobs.get(assessment.jobId);
+          return {
+            ...assessment,
+            jobRole: job ? job.title : 'N/A',
+            companyName: job ? job.company.name : 'N/A',
+          };
+        })
+      );
+
+      await delay(FAKE_DELAY_MS);
+      return HttpResponse.json(enrichedAssessments);
+
+    } catch (error) {
+      return HttpResponse.json({ error: error.message }, { status: 500 });
+    }
+  }),
+
+
+  http.get('/assessments/:jobId', async ({ params }) => {
+    const { jobId } = params;
+    
+    // Find the assessment where the jobId matches. Since we have one per job, we use .first()
+    const assessment = await db.assessments.where('jobId').equals(jobId).first();
+    
+    await delay(FAKE_DELAY_MS);
+
+    if (assessment) {
+      return HttpResponse.json(assessment);
+    }
+    
+    // If no assessment exists for this job, return a 404.
+    // This tells the UI it needs to create a new one.
+    return new HttpResponse(null, { status: 404, statusText: 'Assessment Not Found' });
+  }),
+
+
+  /**
+   * Handler for: PUT /assessments/:jobId
+   * Creates or updates the assessment for a specific job.
+   * 'PUT' is used here because we are replacing the entire assessment document.
+   */
+  http.put('/assessments/:jobId', async ({ request, params }) => {
+    try {
+      simulateRandomError();
+      const { jobId } = params;
+      const updatedAssessmentData = await request.json();
+
+      await db.assessments.put({
+        ...updatedAssessmentData,
+        jobId: jobId, // Ensure the jobId is set correctly
+        updatedAt: new Date().toISOString(),
+      });
+      
+      await delay(FAKE_DELAY_MS);
+      const savedAssessment = await db.assessments.where({ jobId: jobId }).first();
+      
+      return HttpResponse.json(savedAssessment, { status: 200 });
+
+    } 
+    catch (error) {
+      
+      console.error("[MSW] Error in PUT /assessments/:jobId:", error);
+      
+      return new HttpResponse(
+        JSON.stringify({ error: error.message || 'A random server error occurred!' }), 
+        { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+  }),
+
+  
+  /**
+   * Handler for: DELETE /assessments/:jobId
+   * Deletes an assessment associated with a specific job.
+   */
+  
+  http.delete('/assessments/:jobId', async ({ params }) => {
+    try {
+      simulateRandomError();
+      const { jobId } = params;
+
+      // 1. First, find the assessment using the 'jobId' index.
+      const assessmentToDelete = await db.assessments.where({ jobId: jobId }).first();
+
+      if (!assessmentToDelete) {
+        return HttpResponse.json({ error: 'Assessment for this job not found.' }, { status: 404 });
+      }
+
+      // 2. Then, use the document's actual primary key ('id') to delete it.
+      await db.assessments.delete(assessmentToDelete.id);
+      
+
+      await delay(FAKE_DELAY_MS);
+      return new HttpResponse(null, { status: 204 });
+
+    } catch (error) {
+      return HttpResponse.json({ error: error.message }, { status: 500 });
+    }
+  }),
 ];

@@ -1,11 +1,10 @@
-// src/App.jsx
-
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box } from '@mui/material';
 
-// --- Component Imports ---
 import Layout from './components/Layout.jsx';
+import WelcomeModal from './components/WelcomeModal.jsx';
+
 import JobsPage from './pages/JobsPage.jsx';
 import JobDetailPage from './pages/JobDetailPage.jsx';
 import CandidatesPage from './pages/CandidatesPage.jsx';
@@ -13,18 +12,37 @@ import CandidateDetailPage from './pages/CandidateDetailPage.jsx';
 import AssessmentsPage from './pages/AssessmentsPage.jsx';
 import CreateJobPage from './pages/CreateJobPage.jsx';
 import EditJobPage from './pages/EditJobPage'; 
+import CreateAssessmentPage from './pages/CreateAssessmentPage.jsx';
+import AssessmentBuilderPage from './pages/AssessmentBuilderPage.jsx';
+import { DatabaseSeeder } from './pages/dev/DatabaseSeeder.jsx';
 
-import { DatabaseSeeder } from './pages/dev/DatabaseSeeder.jsx'; // Assuming it's in components/dev
 
-// A simple component for the "Not Found" page
 function NotFound() {
   return <h2>404 - Page Not Found</h2>;
 }
 
 
 function App() {
+  const [isWelcomeModalOpen, setWelcomeModalOpen] = useState(false);
+
+  useEffect(() => {
+    // Check if the user has seen the welcome message before
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcomeMessage');
+    
+    if (!hasSeenWelcome) {
+      // If they haven't, open the modal
+      setWelcomeModalOpen(true);
+    }
+  }, []);
+
+  const handleCloseWelcomeModal = () => {
+    // When the user clicks "Acknowledge", close the modal
+    setWelcomeModalOpen(false);
+    // And save a flag in localStorage so it doesn't show again
+    localStorage.setItem('hasSeenWelcomeMessage', 'true');
+  };
+
   return (
-    // The Box wrapper from MUI is a great way to set up the base layout
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <Layout>
         <Routes>
@@ -38,12 +56,16 @@ function App() {
           <Route path="/candidates" element={<CandidatesPage />} />
           <Route path="/candidates/:candidateId" element={<CandidateDetailPage />} />
           
-          <Route path="/assessments/:jobId" element={<AssessmentsPage />} />
+          <Route path="/assessments" element={<AssessmentsPage />} />
+          <Route path="/assessments/create" element={<CreateAssessmentPage />} />
+          <Route path="/assessments/builder/:jobId" element={<AssessmentBuilderPage />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Layout>
       
+      <WelcomeModal open={isWelcomeModalOpen} handleClose={handleCloseWelcomeModal} />
+
       {/* The DatabaseSeeder button will only be rendered in development mode */}
       {import.meta.env.DEV && <DatabaseSeeder />}
     </Box>

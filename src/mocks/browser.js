@@ -10,6 +10,6 @@ export const startMSW = async () => {
     await worker.start({
       onUnhandledRequest: 'bypass',
     });
-    console.log('🔶 MSW enabled');
+    console.log('MSW enabled');
   }
 };
