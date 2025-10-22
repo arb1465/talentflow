@@ -1,7 +1,6 @@
-// src/pages/CreateJobPage.jsx
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Typography,
   Box,
@@ -19,9 +18,27 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
+/**
+ * Sends a request to the mock API to create a new job.
+ * @param {object} newJobData - The data from the form.
+ */
+const createNewJob = async (newJobData) => {
+  const response = await fetch('/jobs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(newJobData),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to create job.');
+  }
+  return response.json();
+};
+
 // --- The Main Create Job Page Component ---
 function CreateJobPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient(); // Get the query client instance
   
   // A single state object to hold all form data
   const [jobData, setJobData] = useState({
@@ -31,14 +48,13 @@ function CreateJobPage() {
     companyDescription: '',
     companyLogo: '',
     industrySection: '',
-    hiringType: 'Full-Time', // Default value
+    hiringType: 'Full-Time', 
     ctcStipend: '',
     experienceRequired: '',
     requiredSkills: [],
     location: ''
   });
 
-  // Handler for simple text input changes
   const handleChange = (event) => {
     const { name, value } = event.target;
     setJobData(prevState => ({
@@ -47,7 +63,6 @@ function CreateJobPage() {
     }));
   };
   
-  // Handler for the multi-select skills input
   const handleSkillsChange = (event) => {
     const { target: { value } } = event;
     setJobData(prevState => ({
@@ -56,15 +71,42 @@ function CreateJobPage() {
     }));
   };
 
+  const createJobMutation = useMutation({
+    mutationFn: createNewJob,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+
+      navigate('/jobs');
+    },
+    onError: (error) => {
+      alert(`Error creating job: ${error.message}`);
+    }
+  });
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    // In the future, this is where you'd call the API to save the job.
-    // For now, we'll just log the data to the console.
-    console.log("--- New Job Data Submitted ---");
-    console.log(jobData);
-    alert("New job created! Check the console for the data.");
-    navigate('/jobs'); // Redirect back to the jobs list after creation
+    
+    const jobToCreate = {
+      title: jobData.jobTitle,
+      description: jobData.jobDescription,
+      company: {
+        name: 'Placeholder Company Name',
+        description: jobData.companyDescription,
+        avatarUrl: jobData.companyLogo,
+      },
+      industry: jobData.industrySection,
+      jobType: jobData.hiringType,
+      salary: {
+          min: 0,
+          max: 0,
+          formatted: jobData.ctcStipend
+      },
+      status: 'active',
+      location: jobData.location,
+      tags: jobData.requiredSkills,
+    };
+
+    createJobMutation.mutate(jobToCreate);
   };
 
   const skillsOptions = ['React', 'Node.js', 'TypeScript', 'Figma', 'PostgreSQL', 'Agile', 'Remote'];
@@ -72,12 +114,16 @@ function CreateJobPage() {
   return (
     <Container maxWidth="lg" sx={{ py: 3 }}>
       {/* Page Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-        <Box>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', 
+        alignItems: { xs: 'flex-start', sm: 'center' },
+        mb: 3,
+        flexDirection: { xs: 'column', sm: 'row' }
+        }}>
+        <Box sx={{ mb: { xs: 2, sm: 0 } }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', fontSize:  { xs: '2rem', sm: 'h4.fontSize' } }}>
             Jobs
           </Typography>
-          <Typography variant="h5" color="text.secondary">
+          <Typography variant="h5" color="text.secondary" sx={{ fontSize: { xs: '1.2rem', sm: 'h5.fontSize' } }}>
             Create Job
           </Typography>
         </Box>
@@ -87,7 +133,7 @@ function CreateJobPage() {
       </Box>
 
       {/* Form Section */}
-      <Paper sx={{ p: 4, borderRadius: 2 }}>
+      <Paper sx={{ p: { xs: 2, sm: 4}, borderRadius: 2 }}>
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
             {/* Left Column */}
@@ -146,9 +192,10 @@ function CreateJobPage() {
             </Grid>
 
             {/* Action Buttons */}
-            <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
-              <Button variant="outlined" onClick={() => navigate('/jobs')}>Cancel</Button>
-              <Button type="submit" variant="contained">Create Job</Button>
+            <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3,
+              flexDirection: { xs: 'column-reverse', sm: 'row' } }}>
+              <Button variant="outlined" onClick={() => navigate('/jobs')} sx={{ width: { xs: '100%', sm: 'auto' } }}>Cancel</Button>
+              <Button type="submit" variant="contained" sx={{ width: { xs: '100%', sm: 'auto' } }}>Create Job</Button>
             </Grid>
           </Grid>
         </form>

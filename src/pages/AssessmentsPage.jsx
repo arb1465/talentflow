@@ -12,7 +12,6 @@ import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-// --- API Fetching and Deleting Functions ---
 const fetchAssessments = async () => {
   // We already created this MSW handler. It gets all assessments and their job details.
   const response = await fetch('/assessments');
@@ -21,7 +20,6 @@ const fetchAssessments = async () => {
 };
 
 const deleteAssessment = async (jobId) => {
-  // We'll need a new MSW handler for this.
   const response = await fetch(`/assessments/${jobId}`, { method: 'DELETE' });
   if (!response.ok) throw new Error('Failed to delete assessment.');
   return true;
@@ -29,7 +27,6 @@ const deleteAssessment = async (jobId) => {
 
 function AssessmentsPage() {
   const queryClient = useQueryClient();
-  // const navigate = useNavigate();
 
   const { data: assessments = [], isLoading, isError, error } = useQuery({
     queryKey: ['assessments'],
@@ -41,7 +38,6 @@ function AssessmentsPage() {
     console.log("Assessments data from useQuery:", assessments);
   }, [assessments]);
   
-  // Mutation for deleting an assessment
   const deleteMutation = useMutation({
     mutationFn: deleteAssessment,
     onSuccess: () => {
@@ -65,24 +61,25 @@ function AssessmentsPage() {
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       {/* Header Section */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 2, sm: 0 } }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', 
+            fontSize: { xs: '2rem', sm: 'h4.fontSize' },
+            alignSelf: { xs: 'flex-start', sm: 'center' } 
+        }}>
           Assessments
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1.5 }}>
-          <TextField size="small" placeholder="Search Assessment..." InputProps={{ endAdornment: <SearchIcon /> }} />
-          {/* This button now links to the page to start creating an assessment */}
-          <Button component={RouterLink} to="/assessments/create" variant="contained" startIcon={<AddIcon />}>
+        <Box sx={{ display: 'flex', gap: 1.5, 
+          width: { xs: '100%', sm: 'auto' }}}>
+          <TextField size="small" placeholder="Search Assessment..." InputProps={{ endAdornment: <SearchIcon /> }}  sx={{flexGrow: 1}}/>
+          <Button component={RouterLink} to="/assessments/create" variant="contained" startIcon={<AddIcon />} sx={{ flexShrink: 0}}>
             Create Assessment
           </Button>
         </Box>
       </Box>
 
-      {/* TODO: Add Tabs for "All" and "Job Role" filtering */}
-      
       {/* Assessments Table */}
       <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }}>
+        <Table sx={{ minWidth: 650 }} aria-label="assessments table">
           <TableHead>
             <TableRow>
               <TableCell>Assessment Title</TableCell>
@@ -93,7 +90,7 @@ function AssessmentsPage() {
           </TableHead>
           <TableBody>
             {assessments.map((assessment) => (
-              <TableRow key={assessment.id}>
+              <TableRow key={assessment.id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                 <TableCell>{assessment.title}</TableCell>
                 <TableCell>{assessment.jobRole}</TableCell>
                 <TableCell>{new Date(assessment.createdAt).toLocaleDateString()}</TableCell>

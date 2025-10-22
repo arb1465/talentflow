@@ -25,6 +25,7 @@ function QuestionRenderer({ question, response, onResponseChange }) {
     const handleChange = (event) => {
         onResponseChange(question.id, event.target.value);
     };
+
     const handleMultiChange = (event) => {
         const { value, checked } = event.target;
         const currentAnswers = response || [];
@@ -33,6 +34,7 @@ function QuestionRenderer({ question, response, onResponseChange }) {
             : currentAnswers.filter(ans => ans !== value);
         onResponseChange(question.id, newAnswers);
     };
+
     const renderQuestion = () => {
         switch (question.type) {
             case 'short-text':
@@ -59,7 +61,6 @@ function QuestionRenderer({ question, response, onResponseChange }) {
                         </RadioGroup>
                     </FormControl>
                 );
-
             case 'multi-choice':
                 return (
                     <FormControl component="fieldset" required={question.required}>
@@ -86,6 +87,8 @@ function QuestionRenderer({ question, response, onResponseChange }) {
                 return <Typography color="error">Unsupported question type: {question.type}</Typography>;
         }
     };
+
     return <Box sx={{ mb: 3 }}>{renderQuestion()}</Box>;
 }
+
 export default QuestionRenderer;

@@ -7,12 +7,10 @@ import {
   Typography, Box, TextField, Avatar, Paper, CircularProgress
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-// --- DND-Kit Imports ---
 import { DndContext, useDraggable, useDroppable, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
-// --- Define the stages for our Kanban board ---
 const STAGES = [
   { id: 'applied', title: 'Applied' },
   { id: 'screen', title: 'Screen' },
@@ -21,7 +19,7 @@ const STAGES = [
   { id: 'hired', title: 'Hired' },
 ];
 
-// --- Visual Candidate Card Component (No changes needed) ---
+
 function CandidateCard({ candidate, isOverlay = false, dragListeners, onClick }) {
   const colorIndex = candidate.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 4;
   const pastelColors = ['#bceeeeff', '#b9c1d6ff', '#C4D7F2', '#eee3f7ff'];
@@ -30,7 +28,7 @@ function CandidateCard({ candidate, isOverlay = false, dragListeners, onClick })
     <Paper 
       onClick={onClick}
       sx={{ 
-        p: 2, mb: 2, borderRadius: 2, 
+        p: { xs: 1.5, sm: 2 }, mb: 2, borderRadius: 2, 
         backgroundColor: pastelColors[colorIndex], 
         overflow: 'hidden', 
         position: 'relative',
@@ -50,15 +48,17 @@ function CandidateCard({ candidate, isOverlay = false, dragListeners, onClick })
         </Box>
       )}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-        <Avatar sx={{ width: 24, height: 24, mr: 1, fontSize: '0.8rem' }}>{candidate.name.charAt(0)}</Avatar>
-        <Typography variant="subtitle2" noWrap sx={{ fontWeight: 'bold' }}>{candidate.name}</Typography>
+        <Avatar sx={{ mr:1, width: { xs: 20, sm: 24 },
+          height: { xs: 20, sm: 24 },
+          fontSize: { xs: '0.7rem', sm: '0.8rem' } }}>{candidate.name.charAt(0)}</Avatar>
+        <Typography variant="subtitle2" noWrap sx={{ fontWeight: 'bold', 
+            fontSize: { xs: '0.8rem', sm: 'subtitle2.fontSize' } }}>{candidate.name}</Typography>
       </Box>
-      <Typography variant="body2" color="text.secondary" noWrap sx={{ textOverflow: 'ellipsis' }}>{candidate.email}</Typography>
-      <Typography variant="caption" color="text.secondary" noWrap sx={{ mt: 1, display: 'block' }}>{Array.isArray(candidate.skills) ? candidate.skills.join(', ') : candidate.skills}</Typography>
+      <Typography variant="body2" color="text.secondary" noWrap sx={{ textOverflow: 'ellipsis', fontSize: { xs: '0.75rem', sm: 'body2.fontSize' } }}>{candidate.email}</Typography>
+      <Typography variant="caption" color="text.secondary" noWrap sx={{ mt: 1, display: 'block', fontSize: { xs: '0.7rem', sm: 'caption.fontSize' } }}>{Array.isArray(candidate.skills) ? candidate.skills.join(', ') : candidate.skills}</Typography>
     </Paper>
   );
 }
-
 
 function Draggable({ id, data, children }) {
    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id, data });
@@ -83,7 +83,6 @@ function Draggable({ id, data, children }) {
     </div>
   );
 }
-
 
 function DroppableColumn({ id, title, items }) {
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -191,14 +190,14 @@ function CandidatesPage() {
       
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <Box sx={{
-          flexGrow: 1, // Make the board fill the available vertical space
+          flexGrow: 1,
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)', 
+          gridTemplateColumns:  { xs: '1fr', md: 'repeat(5, 1fr)' },
           gap: 2, 
-          overflow: 'hidden', 
+          overflow: { xs: 'auto', md: 'hidden' }
         }}>
           {isLoading ? (
-            <CircularProgress sx={{ margin: 'auto' }} />
+            <CircularProgress sx={{ margin: 'auto', gridColumn: '1 / -1' }} />
           ) : (
             STAGES.map(stage => (
               <DroppableColumn key={stage.id} id={stage.id} title={stage.title} items={candidatesByStage[stage.id]} /> 

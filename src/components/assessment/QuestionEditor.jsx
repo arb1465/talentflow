@@ -17,8 +17,6 @@ import {
  * A form to add new questions to the assessment.
  * @param {{ onAddQuestion: (newQuestion: import('../../types').AssessmentQuestion) => void }} props
  */
-
-
 function QuestionEditor({ onAddQuestion }) {
   const [formState, setFormState] = useState({
     title: '',
@@ -66,7 +64,16 @@ function QuestionEditor({ onAddQuestion }) {
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>Add a New Question</Typography>
+      {/* --- Responsive Title --- */}
+      <Typography 
+        variant="h6" 
+        gutterBottom
+        sx={{ 
+          fontSize: { xs: '1.2rem', sm: 'h6.fontSize' } // Smaller title on mobile
+        }}
+      >
+        Add a New Question
+      </Typography>
       
       <FormControl fullWidth sx={{ mb: 2 }}>
         <InputLabel>Question Type</InputLabel>
@@ -100,7 +107,16 @@ function QuestionEditor({ onAddQuestion }) {
         />
       )}
 
-      <Button variant="contained" onClick={handleAddQuestion}>Add Question</Button>
+      {/* --- Responsive Button --- */}
+      <Button 
+        variant="contained" 
+        onClick={handleAddQuestion}
+        sx={{ 
+          width: { xs: '100%', sm: 'auto' } // Full-width button on mobile
+        }}
+      >
+        Add Question
+      </Button>
     </Box>
   );
 }

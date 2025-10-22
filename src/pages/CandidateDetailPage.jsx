@@ -102,9 +102,8 @@ function CandidateDetailPage() {
   const addNoteMutation = useMutation({
     mutationFn: addNoteToCandidate,
     onSuccess: () => {
-      // When a note is added successfully, refetch the candidate data to show the new note
       queryClient.invalidateQueries({ queryKey: ['candidate', candidateId] });
-      setNewNote(''); // Clear the input field
+      setNewNote('');
     },
     onError: (err) => {
       alert(`Failed to add note: ${err.message}`);
@@ -124,7 +123,6 @@ function CandidateDetailPage() {
 
   const activeStepIndex = TIMELINE_STAGES.indexOf(candidate.stage);
   const timelineEventsByStage = (candidate.timeline || []).reduce((acc, event) => {
-    // We only care about the 'toStage' for this map
     if (event.details.toStage) {
       acc[event.details.toStage] = event;
     }
@@ -134,12 +132,12 @@ function CandidateDetailPage() {
   return (
     <Container maxWidth="lg" sx={{ py: 3 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: { xs: 2, sm: 0 } }}>
           <Avatar sx={{ width: 56, height: 56 }} src={candidate.avatarUrl}>{candidate.name.charAt(0)}</Avatar>
           <Box>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>{candidate.name}</Typography>
-            <Typography color="text.secondary">{candidate.email}</Typography>
+            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', fontSize: { xs: '1.8rem', sm: 'h4.fontSize' } }}>{candidate.name}</Typography>
+            <Typography color="text.secondary"  sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>{candidate.email}</Typography>
           </Box>
         </Box>
         <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate('/candidates')}>
@@ -148,7 +146,7 @@ function CandidateDetailPage() {
       </Box>
 
       {/* Main Content Paper */}
-      <Paper sx={{ p: 4, borderRadius: 2 }}>
+      <Paper sx={{ p: { xs: 2, sm: 4}, borderRadius: 2 }}>
         {/* Main Details */}
         <Grid container spacing={3}>
           {/* Details & Resume */}
@@ -195,7 +193,7 @@ function CandidateDetailPage() {
         </Stepper>
 
         {/* Stage & Notes Update */}
-        <Grid container spacing={3} sx={{ mt: 3 }}>
+        <Grid container spacing={3} sx={{ mt: 1 }}>
           <Grid item xs={12} md={6}>
             <TextField fullWidth label="Current Stage" value={stage} onChange={(e) => setStage(e.target.value)} select>
               {['applied', 'screen', 'tech', 'offer', 'hired', 'rejected'].map(option => (
@@ -205,7 +203,7 @@ function CandidateDetailPage() {
           </Grid>
         </Grid>
         
-        {/* --- THIS IS THE NEW NOTES SECTION --- */}
+        {/* --- NOTES SECTION --- */}
         <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 4, mb: 2 }}>Notes</Typography>
         <List sx={{ mb: 2 }}>
           {(Array.isArray(candidate.notes) && candidate.notes.length > 0) ? (
@@ -226,7 +224,7 @@ function CandidateDetailPage() {
         </List>
 
         {/* Input for adding a new note */}
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexdirection: { xs: 'column', sm: 'row' } }}>
           <TextField
             fullWidth
             label="Add a new note... (try typing @)"
@@ -239,6 +237,7 @@ function CandidateDetailPage() {
             variant="contained"
             onClick={handleAddNote}
             disabled={addNoteMutation.isPending}
+            sx={{ width: { xs: '100%', sm: 'auto' }, flexShrink: 0 }}
           >
             {addNoteMutation.isPending ? 'Adding...' : 'Add Note'}
           </Button>
@@ -253,9 +252,9 @@ function CandidateDetailPage() {
         )}
         
         {/* Action Buttons */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 4 }}>
-          <Button variant="outlined" onClick={() => navigate('/candidates')}>Cancel</Button>
-          <Button variant="contained" onClick={handleUpdate} disabled={updateMutation.isPending}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 4, flexDirection: { xs: 'column-reverse', sm: 'row' } }}>
+          <Button variant="outlined" onClick={() => navigate('/candidates')}  sx={{ width: { xs: '100%', sm: 'auto' } }}>Cancel</Button>
+          <Button variant="contained" onClick={handleUpdate} disabled={updateMutation.isPending} sx={{ width: { xs: '100%', sm: 'auto' } }}>
             {updateMutation.isPending ? 'Updating...' : 'Update'}
           </Button>
         </Box>

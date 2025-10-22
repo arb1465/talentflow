@@ -1,22 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  AppBar,
-  Box,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Toolbar,
-  Typography,
-  useTheme
+  AppBar, Box, Drawer, List, ListItem, ListItemButton, ListItemIcon,
+  ListItemText, Toolbar, Typography, useTheme, IconButton, CssBaseline
 } from '@mui/material';
-import {
-  Work as WorkIcon,
-  People as PeopleIcon,
-  Assignment as AssignmentIcon
-} from '@mui/icons-material';
+import MenuIcon from '@mui/icons-material/Menu';
+import WorkIcon from '@mui/icons-material/Work';
+import PeopleIcon from '@mui/icons-material/People';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const drawerWidth = 240;
@@ -31,92 +21,130 @@ function Layout({ children }) {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
+  const drawerContent = (
+    <div>
+      <Toolbar />
+      <Box sx={{ overflow: 'auto' }}>
+        <List>
+          {navigationItems.map((item) => (
+            <ListItem key={item.text} disablePadding>
+              <ListItemButton
+                selected={location.pathname.startsWith(item.path)}
+                onClick={() => {
+                  navigate(item.path);
+                  if (mobileOpen) handleDrawerToggle(); 
+                }}
+                sx={{
+                  '&.Mui-selected': {
+                    backgroundColor: theme.palette.action.selected,
+                    '&:hover': {
+                      backgroundColor: theme.palette.action.hover,
+                    }
+                  }
+                }}
+              >
+                <ListItemIcon 
+                  sx={{ 
+                    color: location.pathname.startsWith(item.path) 
+                      ? theme.palette.primary.main 
+                      : 'inherit' 
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText 
+                  primary={item.text}
+                  sx={{ 
+                    '& .MuiListItemText-primary': {
+                      fontWeight: location.pathname.startsWith(item.path) ? 'bold' : 'normal'
+                    }
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      </Box>
+    </div>
+  );
 
   return (
-    <>
-      {/* App Bar */}
+    <Box sx={{ display: 'flex' }}>
+      <CssBaseline />
       <AppBar 
         position="fixed" 
         sx={{ 
-          zIndex: theme.zIndex.drawer + 1,
-          backgroundColor: '#1C2833'
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          ml: { sm: `${drawerWidth}px` },
         }}
       >
         <Toolbar>
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { sm: 'none' } }} 
+          >
+            <MenuIcon />
+          </IconButton>
           <Typography variant="h6" noWrap component="div">
             TalentFlow
           </Typography>
         </Toolbar>
       </AppBar>
 
-      {/* Sidebar Drawer */}
-      <Drawer
-        variant="permanent"
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-          },
-        }}
+      <Box
+        component="nav"
+        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
       >
-        <Toolbar />
-        <Box sx={{ overflow: 'auto' }}>
-          <List>
-            {navigationItems.map((item) => (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton
-                  selected={location.pathname.startsWith(item.path)}
-                  onClick={() => navigate(item.path)}
-                  sx={{
-                    '&.Mui-selected': {
-                      backgroundColor: theme.palette.primary.light + '20',
-                      '&:hover': {
-                        backgroundColor: theme.palette.primary.light + '30',
-                      }
-                    }
-                  }}
-                >
-                  <ListItemIcon 
-                    sx={{ 
-                      color: location.pathname.startsWith(item.path) 
-                        ? theme.palette.primary.main 
-                        : 'inherit' 
-                    }}
-                  >
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={item.text}
-                    sx={{ 
-                      '& .MuiListItemText-primary': {
-                        fontWeight: location.pathname.startsWith(item.path) ? 600 : 400
-                      }
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </Box>
-      </Drawer>
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{
+            keepMounted: true, 
+          }}
+          sx={{
+            display: { xs: 'block', sm: 'none' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+        
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: 'none', sm: 'block' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+          }}
+          open
+        >
+          {drawerContent}
+        </Drawer>
+      </Box>
 
-      {/* Main Content */}
+
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
-          backgroundColor: '#f5f5f5',
-          minHeight: '100vh',
-          
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
         }}
       >
         <Toolbar />
         {children}
       </Box>
-    </>
+    </Box>
   );
 }
 

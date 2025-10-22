@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import QuestionEditor from '../components/assessment/QuestionEditor';
 import LivePreview from '../components/assessment/LivePreview';
 import {
-  Typography, Box, Button, Paper, Grid, Container, CircularProgress, Alert
+  Typography, Box, Button, Paper, Grid, Container, CircularProgress, Alert, Tabs, Tab, useTheme, useMediaQuery
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { v4 as uuidv4 } from 'uuid';
@@ -36,35 +36,31 @@ function AssessmentBuilderPage() {
   const { jobId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [mobileTab, setMobileTab] = useState(0);
+  const theme = useTheme();
 
-  // The main state for our entire assessment builder
   const [assessment, setAssessment] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Fetch existing assessment data or start with a new one
   const { data: initialData, isLoading, isError, isSuccess, error } = useQuery({
     queryKey: ['assessment', jobId],
     queryFn: () => fetchAssessment(jobId),
   });
 
-  // Populate our state once the data is fetched
   useEffect(() => {
-    // This effect runs when the query is finished (isSuccess becomes true)
     if (isSuccess) {
       if (initialData) {
-        // If we found an existing assessment, use it.
         console.log("Found existing assessment, setting state...");
         setAssessment(initialData);
         setIsEditMode(true); 
       } else {
-        // If the query succeeded but returned null (a 404), create a new one.
         console.log("No assessment found for this job, creating a new one...");
         setIsEditMode(false);
         setAssessment({
           id: uuidv4(),
           jobId: jobId,
           title: 'New Skills Assessment',
-          // ... all other default properties for a blank assessment
           sections: [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -76,12 +72,10 @@ function AssessmentBuilderPage() {
   const saveMutation = useMutation({
     mutationFn: saveAssessment,
     onSuccess: () => {
-      // 1. Invalidate queries to ensure both the builder and the list page refetch data
       queryClient.invalidateQueries({ queryKey: ['assessment', jobId] });
       queryClient.invalidateQueries({ queryKey: ['assessments'] });
       alert('Assessment saved successfully!');
       
-      // 2. Navigate the user back to the main assessments list page
       navigate('/assessments');
     },
     onError: (err) => {
@@ -109,6 +103,10 @@ function AssessmentBuilderPage() {
     });
   };
   
+  const handleMobileTabChange = (event, newValue) => {
+    setMobileTab(newValue);
+  };
+
   // --- Render Logic ---
   if (isLoading || !assessment) {
     return <CircularProgress sx={{ display: 'block', margin: '100px auto' }} />;
@@ -121,41 +119,53 @@ function AssessmentBuilderPage() {
   return (
     <Container maxWidth="xl" sx={{ py: 3, height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>Assessments</Typography>
-          <Typography variant="h5" color="text.secondary">
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', 
+        alignItems: { xs: 'flex-start', sm: 'center' },
+        mb: 3,
+        flexDirection: { xs: 'column', sm: 'row' } 
+      }}>
+        <Box sx={{ mb: { xs: 2, sm: 0 } }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', fontSize: {xs: '2rem', sm: 'h4.fontSize'} }}>Assessments</Typography>
+          <Typography variant="h5" color="text.secondary" sx={{ fontSize: { xs: '1.2rem', sm: 'h5.fontSize' } }}>
             {isEditMode ? 'Edit Assessment' : 'New Assessment'}  
           </Typography>
           <Typography variant="caption" color="text.secondary">Assessment ID: {assessment.id.substring(0,8)}...</Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate('/assessments')}>
+        <Box sx={{ display: 'flex', gap: 2, width: { xs: '100%', sm: 'auto'} }}>
+          <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate('/assessments')} sx={{ flexGrow: 1}}>
             Back to Assessments
           </Button>
-          <Button variant="contained" onClick={handleSave} disabled={saveMutation.isPending}>
+          <Button variant="contained" onClick={handleSave} disabled={saveMutation.isPending} sx={{ flexGrow: 1 }}>
             {saveMutation.isPending ? 'Saving...' : (isEditMode ? 'Update Assessment' : 'Create this Assessment')}
           </Button>
         </Box>
       </Box>
 
       {/* Two-Pane Layout */}
-      <Grid container spacing={3} sx={{ flexGrow: 1 }}>
-        {/* Left Pane: Editor */}
-        <Grid item xs={12} md={5}>
-          <Paper sx={{ p: 2, height: 'content-fit' }}>
+      {isMobile ? (
+        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs value={mobileTab} onChange={handleMobileTabChange} variant="fullWidth">
+              <Tab label="Editor" />
+              <Tab label="Preview" />
+            </Tabs>
+          </Box>
+          <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
+            {mobileTab === 0 && <QuestionEditor onAddQuestion={handleAddQuestion} />}
+            {mobileTab === 1 && <LivePreview assessment={assessment} />}
+          </Box>
+        </Box>
+      ) : (
+        <Box sx={{ display: 'flex', gap: 3, flexGrow: 1, overflow: 'hidden' }}>
+          <Paper sx={{ width: '40%', flexShrink: 0, p: 2, overflowY: 'auto' }}>
             <QuestionEditor onAddQuestion={handleAddQuestion} />
           </Paper>
-        </Grid>
-        
-        {/* Right Pane: Live Preview */}
-        <Grid item xs={12} md={7}>
-          <Paper sx={{ p: 2, height: '100%', overflowY: 'auto' }}>
+          <Paper sx={{ flexGrow: 1, p: 2, height: '100%', overflowY: 'auto' }}>
             <Typography variant="h6">Preview</Typography>
             <LivePreview assessment={assessment} />
           </Paper>
-        </Grid>
-      </Grid>
+        </Box>
+      )}
     </Container>
   );
 }

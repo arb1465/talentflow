@@ -28,10 +28,39 @@ function LivePreview({ assessment }) {
 
   return (
     <Box>
-      <Typography variant="h5" gutterBottom>{assessment.title}</Typography>
+      <Typography 
+        variant="h5" 
+        gutterBottom
+        sx={{ 
+          fontSize: { xs: '1.25rem', sm: 'h5.fontSize' },
+          fontWeight: 'bold' 
+        }}
+      >
+        {assessment.title}
+      </Typography>
+
       {assessment.sections.map(section => (
-        <Paper key={section.id} sx={{ p: 2, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>{section.title}</Typography>
+        <Paper 
+          key={section.id} 
+          sx={{ 
+            p: { xs: 1.5, sm: 2 }, 
+            mb: 3, 
+            boxShadow: 'none', 
+            border: '1px solid', 
+            borderColor: 'divider' 
+          }}
+        >
+          <Typography 
+            variant="h6" 
+            gutterBottom
+            sx={{ 
+              fontSize: { xs: '1.1rem', sm: 'h6.fontSize' },
+              fontWeight: 500
+            }}
+          >
+            {section.title}
+          </Typography>
+          
           {section.questions.map(question => (
             <QuestionRenderer
               key={question.id}
@@ -42,7 +71,12 @@ function LivePreview({ assessment }) {
           ))}
         </Paper>
       ))}
-      <Button variant="contained" onClick={handleSubmit}>Submit Preview</Button>
+      <Button 
+        variant="contained" 
+        onClick={handleSubmit} 
+        sx={{ width: { xs: '100%', sm: 'auto' } }}>
+        Submit Preview
+      </Button>
     </Box>
   );
 }
