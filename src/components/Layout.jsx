@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
-  AppBar, Box, Drawer, List, ListItem, ListItemButton, ListItemIcon,
-  ListItemText, Toolbar, Typography, useTheme, IconButton, CssBaseline
+  AppBar, Box, Drawer, List, ListItem, ListItemButton, ListItemIcon,  ListItemText, Toolbar, Typography, useTheme, IconButton, CssBaseline, Divider
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import WorkIcon from '@mui/icons-material/Work';
@@ -9,7 +8,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const drawerWidth = 240;
+const drawerWidth = 220;
 
 const navigationItems = [
   { text: 'Jobs', icon: <WorkIcon />, path: '/jobs' },
@@ -81,8 +80,7 @@ function Layout({ children }) {
       <AppBar 
         position="fixed" 
         sx={{ 
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          zIndex: theme.zIndex.drawer + 1
         }}
       >
         <Toolbar>
@@ -95,7 +93,7 @@ function Layout({ children }) {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
+          <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
             TalentFlow
           </Typography>
         </Toolbar>
@@ -105,33 +103,41 @@ function Layout({ children }) {
         component="nav"
         sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
       >
+        {/* For Mobile */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true, 
-          }}
+          ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', sm: 'none' },
             '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
           }}
-        >
+          >
+          <Toolbar>
+            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
+              TalentFlow
+            </Typography>
+          </Toolbar>
+          <Divider />
           {drawerContent}
         </Drawer>
         
+        {/* For Desktop */}
         <Drawer
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: drawerWidth,
+            },
           }}
           open
         >
           {drawerContent}
         </Drawer>
       </Box>
-
 
       <Box
         component="main"

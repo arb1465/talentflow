@@ -172,7 +172,7 @@ function CandidatesPage() {
   };
 
   return (
-    <Box sx={{ p: 3, width: '100%', height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ p: 3, height: 'calc(100vh - 94px)', display: 'flex', flexDirection: 'column'  }}>
       {/* ... Header and Filters ... */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
