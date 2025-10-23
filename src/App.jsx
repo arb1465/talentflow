@@ -43,6 +43,7 @@ function App() {
   };
 
   return (
+    <>
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <Layout>
         <Routes>
@@ -64,11 +65,14 @@ function App() {
         </Routes>
       </Layout>
       
-      <WelcomeModal open={isWelcomeModalOpen} handleClose={handleCloseWelcomeModal} />
-
-      {/* The DatabaseSeeder button will only be rendered in development mode */}
-      {import.meta.env.DEV && <DatabaseSeeder />}
     </Box>
+
+    <WelcomeModal open={isWelcomeModalOpen} handleClose={handleCloseWelcomeModal} />
+    
+    {/* The DatabaseSeeder button will only be rendered in development mode */}
+    {import.meta.env.DEV && <DatabaseSeeder />}
+    
+    </>
   );
 }
 

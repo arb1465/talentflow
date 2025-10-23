@@ -59,7 +59,7 @@ function AssessmentsPage() {
   if (isError) return <Typography color="error">Error: {error.message}</Typography>;
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Box sx={{ p:3}}>
       {/* Header Section */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 2, sm: 0 } }}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', 
@@ -107,7 +107,7 @@ function AssessmentsPage() {
           </TableBody>
         </Table>
       </TableContainer>
-    </Container>
+    </Box>
   );
 }
 

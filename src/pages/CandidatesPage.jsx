@@ -1,6 +1,6 @@
 // src/pages/CandidatesPage.jsx
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCandidates, useUpdateCandidateStage } from '../hooks/useCandidates';
 import {
@@ -9,7 +9,6 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import { DndContext, useDraggable, useDroppable, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
-import { useVirtualizer } from '@tanstack/react-virtual';
 
 const STAGES = [
   { id: 'applied', title: 'Applied' },
@@ -87,14 +86,6 @@ function Draggable({ id, data, children }) {
 function DroppableColumn({ id, title, items }) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
-  const parentRef = useRef();
-
-  const rowVirtualizer = useVirtualizer({
-    count: items.length, // The total number of items
-    getScrollElement: () => parentRef.current, // The element that will scroll
-    estimateSize: () => 120, // The estimated height of each card (px)
-    overscan: 5, // Render 5 extra items above/below the viewport
-  });
 
   return (
     <Paper
@@ -107,30 +98,11 @@ function DroppableColumn({ id, title, items }) {
     >
       <Typography variant="h6" sx={{  p: 2, textAlign: 'center', flexShrink: 0 }}>{title}</Typography>
       
-      <Box ref={parentRef} sx={{ flexGrow: 1, overflowY: 'auto', px: 1 }}>
-        <Box sx={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
-          {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-            const candidate = items[virtualItem.index];
-            return (
-              <Box
-                key={virtualItem.key}
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: `${virtualItem.size}px`,
-                  transform: `translateY(${virtualItem.start}px)`,
-                }}
-              >
-                <Draggable id={candidate.id} data={{ candidate }}>
-                  <CandidateCard candidate={candidate} />
-                </Draggable>
-              </Box>
-            );
-          })}
-        </Box>
-      </Box>
+      {items.map(candidate => (
+        <Draggable key={candidate.id} id={candidate.id} data={{ candidate }}>
+          <CandidateCard candidate={candidate} />
+        </Draggable>
+      ))}
     </Paper>
   );
 }
@@ -172,7 +144,7 @@ function CandidatesPage() {
   };
 
   return (
-    <Box sx={{ p: 3, height: 'calc(100vh - 94px)', display: 'flex', flexDirection: 'column'  }}>
+    <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
       {/* ... Header and Filters ... */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
